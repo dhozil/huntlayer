@@ -25,7 +25,7 @@ def test_create_bounty():
     contract = deploy_contract()
 
     tx = contract.create_bounty(
-        args=["Fix login bug", "Users cannot log in", "genlayerlabs/genlayer-js", 10, 5, 2, 1],
+        args=["Fix login bug", "Users cannot log in", "octocat/Hello-World", 10, 5, 2, 1],
     ).transact(value=10**18)
     assert tx_execution_succeeded(tx)
 
@@ -39,7 +39,7 @@ def test_submit_and_evaluate():
     contract = deploy_contract()
 
     tx = contract.create_bounty(
-        args=["Fix login bug", "Users cannot log in", "genlayerlabs/genlayer-js", 10, 5, 2, 1],
+        args=["Fix login bug", "Users cannot log in", "octocat/Hello-World", 10, 5, 2, 1],
     ).transact(value=10**18)
     assert tx_execution_succeeded(tx)
 
@@ -71,16 +71,16 @@ def test_release_on_merge():
     ).transact(value=10**18)
     assert tx_execution_succeeded(tx)
 
-    sub_tx = contract.submit_pr(args=["bounty_0", MERGED_PR_URL, "2025-01-01"]).transact()
+    sub_tx = contract.submit_pr(args=["bounty_0", MERGED_PR_URL]).transact()
     assert tx_execution_succeeded(sub_tx)
 
     subs = contract.get_submissions(args=["bounty_0"]).call()
     submission_id = list(subs.keys())[0]
 
-    eval_tx = contract.evaluate_severity(args=["bounty_0", submission_id, "2025-01-01"]).transact()
+    eval_tx = contract.evaluate_severity(args=["bounty_0", submission_id]).transact()
     assert tx_execution_succeeded(eval_tx)
 
-    rel_tx = contract.release_bounty(args=["bounty_0", submission_id, "2025-01-01"]).transact()
+    rel_tx = contract.release_bounty(args=["bounty_0", submission_id]).transact()
     assert tx_execution_succeeded(rel_tx)
 
     subs = contract.get_submissions(args=["bounty_0"]).call()

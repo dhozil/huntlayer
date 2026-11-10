@@ -169,15 +169,20 @@ class HuntLayer(gl.Contract):
         self.bounties[bounty_id] = bounty
 
     @gl.public.write
-    def close_if_expired(self, bounty_id: str, current_date: str) -> None:
+    def withdraw_pool(self, bounty_id: str) -> None:
         if bounty_id not in self.bounties:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} unknown bounty")
         bounty = self.bounties[bounty_id]
-        if bounty.status != "open":
-            return
-        if bounty.deadline and current_date > bounty.deadline:
-            bounty.status = "closed"
-            self.bounties[bounty_id] = bounty
+        if gl.message.sender_address != Address(bounty.creator):
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} only creator can withdraw")
+        if bounty.status != "closed":
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty must be closed before withdrawal")
+        if bounty.pool == u256(0):
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} no funds to withdraw")
+        amount = bounty.pool
+        bounty.pool = u256(0)
+        self.bounties[bounty_id] = bounty
+        _Recipient(Address(bounty.creator)).emit_transfer(value=amount)
 
     @gl.public.write
     def reopen_evaluation(self, bounty_id: str, submission_id: str) -> None:
@@ -197,21 +202,21 @@ class HuntLayer(gl.Contract):
         self.submissions[bounty_id][submission_id] = submission
 
     @gl.public.write
-    def submit_pr(self, bounty_id: str, pr_url: str, current_date: str = "") -> str:
+    def submit_pr(self, bounty_id: str, pr_url: str) -> str:
         if bounty_id not in self.bounties:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} unknown bounty")
         bounty = self.bounties[bounty_id]
         if bounty.status != "open":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty is closed")
-        if bounty.deadline and current_date and current_date > bounty.deadline:
-            bounty.status = "closed"
-            self.bounties[bounty_id] = bounty
-            raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty deadline passed")
         # anti-duplication: same PR cannot be reused across bounties
         if pr_url in self.submitted_prs:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} PR already submitted")
-        # validate PR url parses
-        self._parse_pr(pr_url)
+        # validate PR url parses and bind to bounty repo
+        owner, repo, _ = self._parse_pr(pr_url)
+        pr_repo = f"{owner}/{repo}".lower()
+        expected = bounty.repo.strip().strip("/").lower()
+        if pr_repo != expected:
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} PR repo does not match bounty repo")
 
         submission_id = f"sub_{self.submission_counter}"
         self.submission_counter = self.submission_counter + u256(1)
@@ -235,7 +240,7 @@ class HuntLayer(gl.Contract):
     # ---------- severity evaluation ----------
 
     @gl.public.write
-    def evaluate_severity(self, bounty_id: str, submission_id: str, current_date: str = "") -> None:
+    def evaluate_severity(self, bounty_id: str, submission_id: str) -> None:
         if bounty_id not in self.bounties:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} unknown bounty")
         if bounty_id not in self.submissions or submission_id not in self.submissions[bounty_id]:
@@ -246,10 +251,6 @@ class HuntLayer(gl.Contract):
         bounty = self.bounties[bounty_id]
         if bounty.status != "open":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty closed")
-        if bounty.deadline and current_date and current_date > bounty.deadline:
-            bounty.status = "closed"
-            self.bounties[bounty_id] = bounty
-            raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty deadline passed")
 
         owner, repo, number = self._parse_pr(submission.pr_url)
         api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
@@ -347,7 +348,7 @@ Return JSON only:
     # ---------- release on merge ----------
 
     @gl.public.write
-    def release_bounty(self, bounty_id: str, submission_id: str, current_date: str = "") -> None:
+    def release_bounty(self, bounty_id: str, submission_id: str) -> None:
         if bounty_id not in self.bounties:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} unknown bounty")
         if bounty_id not in self.submissions or submission_id not in self.submissions[bounty_id]:
@@ -391,10 +392,8 @@ Return JSON only:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} insufficient bounty pool")
         researcher = submission.researcher
         addr = Address(researcher)
-        # send value to researcher (EOA)
-        _Recipient(Address(researcher)).emit_transfer(value=amount)
 
-        # update reputation (weighted) + merge count + total earned
+        # effects: update state before emitting transfer
         if addr not in self.reputation:
             self.reputation[addr] = u256(0)
         if addr not in self.merge_count:
@@ -406,13 +405,15 @@ Return JSON only:
         self.merge_count[addr] = self.merge_count[addr] + u256(1)
         self.total_earned[addr] = self.total_earned[addr] + amount
 
-        # deduct pool
         bounty.pool = bounty.pool - amount
         self.bounties[bounty_id] = bounty
 
         submission.status = "paid"
         submission.paid = True
         self.submissions[bounty_id][submission_id] = submission
+
+        # send value to researcher (EOA)
+        _Recipient(Address(researcher)).emit_transfer(value=amount)
 
     # ---------- views ----------
 

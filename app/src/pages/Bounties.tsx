@@ -25,20 +25,23 @@ export default function Bounties({ connected }: { connected: boolean }) {
   // action inputs
   const [fundAmt, setFundAmt] = useState("500000000000000000");
   const [prUrl, setPrUrl] = useState("https://github.com/owner/repo/pull/1");
-  const [curDate, setCurDate] = useState("2026-01-01");
   const [subId, setSubId] = useState("sub_0");
 
   async function run(label: string, fn: () => Promise<string>) {
     if (!connected) { setTx({ status:"error", message:"Connect wallet first." }); return; }
     try {
-      setTx({ status:"pending", message: label });
+      setTx({ status:"pending", message: label + " — submitting..." });
       const hash = await fn();
-      setTx({ status:"pending", hash, message: `${label} — waiting for receipt...` });
-      try { await waitForTx(hash); } catch { /* some clients auto-wait */ }
-      setTx({ status:"success", hash, message: label + " completed." });
+      setTx({ status:"pending", hash, message: `${label} — submitted, waiting for finalization...` });
+      const receipt: any = await waitForTx(hash);
+      const name = String(receipt?.txExecutionResultName || receipt?.execution_result || receipt?.executionResult || "").toUpperCase();
+      const st = String(receipt?.statusName || receipt?.status || "").toUpperCase();
+      if (name.includes("ERROR") || name.includes("REVERT") || name.includes("FAIL") || st.includes("ERROR") || st.includes("FAILED")) {
+        throw new Error(`${label} failed: ${receipt?.message || receipt?.txExecutionResultName || "execution failed"}`);
+      }
+      setTx({ status:"success", hash, message: label + " finalized successfully." });
     } catch(e:any) {
       const msg = e?.shortMessage || e?.message || String(e);
-      // try to extract tx hash if present
       const m = msg.match(/0x[a-fA-F0-9]{64}/);
       setTx({ status:"error", hash: m?.[0], message: msg });
     }
@@ -119,7 +122,7 @@ export default function Bounties({ connected }: { connected: boolean }) {
                     <div className="flex items-center justify-between"><span className="font-mono text-xs">{id}</span><div className="flex gap-1">{sev(s)}{s.paid && <Badge variant="success">paid</Badge>}</div></div>
                     <div className="break-all text-xs text-muted-foreground">{s.pr_url}</div>
                     <div className="text-xs">Evaluated: {String(s.evaluated)} · Status: {s.status} · Payout: {String(s.payout)} · Confidence: {String(s.confidence ?? 0)}</div>
-                    {s.reasoning && <div className="text-xs text-muted-foreground">Reason: {s.reasoning}</div>}
+                    {s.reasoning && <div className="text-xs text-muted-foreground">AI explanation (non-consensus): {s.reasoning}</div>}
                   </div>
                 ))}
               </div>
@@ -138,27 +141,23 @@ export default function Bounties({ connected }: { connected: boolean }) {
               </ActionBox>
               <ActionBox title="Submit PR" icon={<Send className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
-                <Input placeholder="PR URL" value={prUrl} onChange={e=>setPrUrl(e.target.value)} />
-                <Input placeholder="current date YYYY-MM-DD" value={curDate} onChange={e=>setCurDate(e.target.value)} />
-                <Button disabled={tx.status==="pending"} onClick={()=>run("Submit PR", ()=>writeContract("submit_pr",[bountyId, prUrl, curDate]))}>Submit</Button>
+                <Input placeholder="PR URL (must match bounty repo)" value={prUrl} onChange={e=>setPrUrl(e.target.value)} />
+                <Button disabled={tx.status==="pending"} onClick={()=>run("Submit PR", ()=>writeContract("submit_pr",[bountyId, prUrl]))}>Submit</Button>
               </ActionBox>
               <ActionBox title="Evaluate Severity" icon={<CheckCircle className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
                 <Input placeholder="submission_id" value={subId} onChange={e=>setSubId(e.target.value)} />
-                <Input placeholder="current date" value={curDate} onChange={e=>setCurDate(e.target.value)} />
-                <Button disabled={tx.status==="pending"} onClick={()=>run("Evaluate severity", ()=>writeContract("evaluate_severity",[bountyId, subId, curDate]))}>Evaluate (AI Consensus)</Button>
+                <Button disabled={tx.status==="pending"} onClick={()=>run("Evaluate severity", ()=>writeContract("evaluate_severity",[bountyId, subId]))}>Evaluate (AI Consensus)</Button>
               </ActionBox>
               <ActionBox title="Release Bounty" icon={<GitMerge className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
                 <Input placeholder="submission_id" value={subId} onChange={e=>setSubId(e.target.value)} />
-                <Input placeholder="current date" value={curDate} onChange={e=>setCurDate(e.target.value)} />
-                <Button disabled={tx.status==="pending"} onClick={()=>run("Release bounty", ()=>writeContract("release_bounty",[bountyId, subId, curDate]))}>Release on Merge</Button>
+                <Button disabled={tx.status==="pending"} onClick={()=>run("Release bounty", ()=>writeContract("release_bounty",[bountyId, subId]))}>Release on Merge</Button>
               </ActionBox>
-              <ActionBox title="Close / Expire" icon={<Lock className="h-4 w-4"/>}>
+              <ActionBox title="Close / Withdraw" icon={<Lock className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
-                <Input placeholder="current date (for expire)" value={curDate} onChange={e=>setCurDate(e.target.value)} />
                 <div className="flex gap-2"><Button className="flex-1" variant="secondary" disabled={tx.status==="pending"} onClick={()=>run("Close bounty", ()=>writeContract("close_bounty",[bountyId]))}>Close</Button>
-                <Button className="flex-1" variant="outline" disabled={tx.status==="pending"} onClick={()=>run("Close if expired", ()=>writeContract("close_if_expired",[bountyId, curDate]))}>Expire</Button></div>
+                <Button className="flex-1" variant="outline" disabled={tx.status==="pending"} onClick={()=>run("Withdraw pool", ()=>writeContract("withdraw_pool",[bountyId]))}>Withdraw</Button></div>
               </ActionBox>
               <ActionBox title="Reopen Evaluation" icon={<RefreshCw className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
@@ -169,7 +168,7 @@ export default function Bounties({ connected }: { connected: boolean }) {
           </CardContent>
         </Card>
       </div>
-      <p className="text-xs text-muted-foreground mt-6">Note: amounts are in wei (1 GEN = 10^18 wei). Consensus operations (evaluate/release) may take ~30-90s. Ensure PR URLs are real and accessible; release requires the PR to be merged.</p>
+      <p className="text-xs text-muted-foreground mt-6">Note: amounts are in wei (1 GEN = 10^18 wei). Consensus operations (evaluate/release) may take ~30-90s. PRs must belong to the bounty repo and be real/accessible; release requires the PR to be merged. Creators can close and withdraw remaining pool.</p>
     </div>
   );
 }

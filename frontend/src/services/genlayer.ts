@@ -69,17 +69,19 @@ export async function writeContract(functionName: string, args: any[] = [], valu
 
 export async function waitForTransactionReceipt(hash: string) {
   const client = ensureClient();
+  let lastErr: any = null;
   // prefer doc-recommended waits when available
   if (typeof client.waitForFinalization === "function") {
-    try { return await client.waitForFinalization({ hash }); } catch {}
+    try { return await client.waitForFinalization({ hash }); } catch (e) { lastErr = e; }
   }
   if (typeof client.waitForDecision === "function") {
-    try { return await client.waitForDecision({ hash }); } catch {}
+    try { return await client.waitForDecision({ hash }); } catch (e) { lastErr = e; }
   }
   if (typeof client.waitForTransactionReceipt === "function") {
-    try { return await client.waitForTransactionReceipt({ hash }); } catch { return await client.waitForTransactionReceipt(hash); }
+    try { return await client.waitForTransactionReceipt({ hash }); }
+    catch (e) { lastErr = e; try { return await client.waitForTransactionReceipt(hash); } catch (e2) { lastErr = e2; } }
   }
-  throw new Error("No wait method available on client");
+  throw lastErr || new Error("No wait method available on client");
 }
 
 export async function getTransaction(hash: string) {
@@ -93,16 +95,17 @@ export async function getTransaction(hash: string) {
   return null;
 }
 
-export function isTxSuccessful(tx: any): boolean {
-  if (!tx) return false;
+export function isTxSuccessful(tx: any): boolean | null {
+  if (!tx) return null;
   if (typeof tx === "object") {
-    // best-effort: check common success indicators
-    if (tx.txExecutionResultName === "FINISHED_WITH_RETURN") return true;
-    if (tx.execution_result === "SUCCESS" || tx.executionResult === "SUCCESS") return true;
+    const name = String(tx.txExecutionResultName || tx.execution_result || tx.executionResult || "").toUpperCase();
+    if (name.includes("ERROR") || name.includes("REVERT") || name.includes("FAIL")) return false;
+    if (name === "FINISHED_WITH_RETURN" || name === "SUCCESS") return true;
     const s = String(tx.statusName || tx.status || "").toUpperCase();
+    if (s.includes("ERROR") || s.includes("FAILED") || s.includes("REVERT")) return false;
     if (s.includes("ACCEPTED") || s.includes("FINALIZED")) return true;
   }
-  return false;
+  return null;
 }
 
 export async function simulateWrite(functionName: string, args: any[] = []) {

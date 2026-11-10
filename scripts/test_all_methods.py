@@ -54,13 +54,13 @@ write(client, ADDR, "fund_bounty", ["bounty_0"], value=5*10**17, label="fund_bou
 print("pool after fund:", client.read_contract(ADDR, "get_bounty", args=["bounty_0"])["pool"])
 
 # 3. submit_pr
-write(client, ADDR, "submit_pr", ["bounty_0", PR_OPEN, "2025-01-01"], label="submit_pr")
+write(client, ADDR, "submit_pr", ["bounty_0", PR_OPEN], label="submit_pr")
 subs = client.read_contract(ADDR, "get_submissions", args=["bounty_0"])
 sid = list(subs.keys())[0]
 print("get_submissions:", json.dumps(subs[sid]))
 
 # 4. evaluate_severity
-write(client, ADDR, "evaluate_severity", ["bounty_0", sid, "2025-01-01"], label="evaluate_severity")
+write(client, ADDR, "evaluate_severity", ["bounty_0", sid], label="evaluate_severity")
 subs = client.read_contract(ADDR, "get_submissions", args=["bounty_0"])
 print("after eval confidence:", subs[sid].get("confidence"), "severity:", subs[sid].get("severity"))
 
@@ -69,10 +69,10 @@ write(client, ADDR, "reopen_evaluation", ["bounty_0", sid], label="reopen_evalua
 print("after reopen evaluated:", client.read_contract(ADDR, "get_submissions", args=["bounty_0"])[sid]["evaluated"])
 
 # re-evaluate for release attempt
-write(client, ADDR, "evaluate_severity", ["bounty_0", sid, "2025-01-01"], label="re-evaluate")
+write(client, ADDR, "evaluate_severity", ["bounty_0", sid], label="re-evaluate")
 
 # 6. release_bounty should fail (PR not merged)
-expect_fail(client, ADDR, "release_bounty", ["bounty_0", sid, "2025-01-01"], label="release_unmerged_should_fail")
+expect_fail(client, ADDR, "release_bounty", ["bounty_0", sid], label="release_unmerged_should_fail")
 
 # 7. adversarial: non-creator close/reopen
 expect_fail(adv_client, ADDR, "close_bounty", ["bounty_0"], label="adv_close_should_fail")
@@ -80,26 +80,26 @@ expect_fail(adv_client, ADDR, "reopen_evaluation", ["bounty_0", sid], label="adv
 
 # 8. duplicate PR rejection
 write(client, ADDR, "create_bounty", ["Bounty2","d","octocat/Hello-World",1,1,1,1,""], value=10**18, label="create_bounty_2")
-expect_fail(client, ADDR, "submit_pr", ["bounty_1", PR_OPEN, ""], label="duplicate_pr_should_fail")
+expect_fail(client, ADDR, "submit_pr", ["bounty_1", PR_OPEN], label="duplicate_pr_should_fail")
 
-# 9. close_if_expired (not expired)
-write(client, ADDR, "close_if_expired", ["bounty_1", "2020-01-01"], label="close_if_expired_noop")
-print("bounty_1 status:", client.read_contract(ADDR, "get_bounty", args=["bounty_1"])["status"])
-
-# 10. close_bounty by creator
+# 9. close_bounty by creator
 write(client, ADDR, "close_bounty", ["bounty_1"], label="close_bounty")
 print("bounty_1 closed:", client.read_contract(ADDR, "get_bounty", args=["bounty_1"])["status"])
 
+# 10. withdraw_pool by creator (leftover funds)
+write(client, ADDR, "withdraw_pool", ["bounty_1"], label="withdraw_pool")
+print("bounty_1 pool after withdraw:", client.read_contract(ADDR, "get_bounty", args=["bounty_1"])["pool"])
+
 # 11. submit after close rejected
-expect_fail(client, ADDR, "submit_pr", ["bounty_1", "https://github.com/octocat/Hello-World/pull/2", ""], label="submit_after_close_should_fail")
+expect_fail(client, ADDR, "submit_pr", ["bounty_1", "https://github.com/octocat/Hello-World/pull/2"], label="submit_after_close_should_fail")
 
 # 12. release on merged PR path (new bounty)
 write(client, ADDR, "create_bounty", ["Bounty3","d","octocat/Spoon-Knife",10,5,2,1,"2099-12-31"], value=10**18, label="create_bounty_3")
-write(client, ADDR, "submit_pr", ["bounty_2", PR_MERGED, "2025-01-01"], label="submit_pr_merged")
+write(client, ADDR, "submit_pr", ["bounty_2", PR_MERGED], label="submit_pr_merged")
 subs3 = client.read_contract(ADDR, "get_submissions", args=["bounty_2"])
 sid3 = list(subs3.keys())[0]
-write(client, ADDR, "evaluate_severity", ["bounty_2", sid3, "2025-01-01"], label="evaluate_merged")
-write(client, ADDR, "release_bounty", ["bounty_2", sid3, "2025-01-01"], label="release_bounty_merged")
+write(client, ADDR, "evaluate_severity", ["bounty_2", sid3], label="evaluate_merged")
+write(client, ADDR, "release_bounty", ["bounty_2", sid3], label="release_bounty_merged")
 subs3 = client.read_contract(ADDR, "get_submissions", args=["bounty_2"])
 print("merged paid:", subs3[sid3]["paid"], "status:", subs3[sid3]["status"])
 

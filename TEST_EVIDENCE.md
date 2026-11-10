@@ -1,5 +1,7 @@
 # HuntLayer — Test Evidence (Studionet)
 
+> **Historical evidence:** this document records transactions from the previously deployed Studionet contract (`0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF`) and its method signatures at that time. The contract and frontend have since been improved (fund recovery via `withdraw_pool`, PR-to-repo binding, removal of untrusted caller-supplied date parameters, stricter frontend tx finalization checks). A redeployment and fresh on-chain test run are required to produce evidence for the updated contract.
+
 Documentation of **real on-chain execution on GenLayer Studionet** (not mocked), using funded Studionet wallets (kept private).
 
 ## Environment & Identities

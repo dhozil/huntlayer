@@ -41,23 +41,23 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 
 | Area | Capability |
 |---|---|
-| **Bounty lifecycle** | Create & fund bounties, top-up pool, set deadline, close/expire |
-| **Submissions** | Submit PR URL, anti-duplication (same PR cannot be reused), deadline/status checks |
-| **AI severity consensus** | Leader/validator evaluation from GitHub PR evidence; severity + confidence; tolerance-based agreement; critical claims gated by confidence |
+| **Bounty lifecycle** | Create & fund bounties, top-up pool, set deadline metadata, close, and withdraw remaining pool (creator, after close) |
+| **Submissions** | Submit PR URL bound to the bounty repo, anti-duplication (same PR cannot be reused), status checks |
+| **AI severity consensus** | Leader/validator evaluation from GitHub PR evidence fetched on-chain; severity + confidence; tolerance-based agreement; critical claims gated by confidence |
 | **Payout on merge** | Web-verified merge status before release; pool sufficiency checks; on-chain value transfer |
 | **Reputation** | Weighted reputation (Critical 10 / High 5 / Medium 3 / Low 1), merge count, total earned |
-| **Safety & controls** | Creator-only actions (close/reopen), re-evaluation path, deterministic/expected-error handling for consensus, appeal-compatible design |
+| **Safety & controls** | Creator-only actions (close/reopen/withdraw), re-evaluation path, deterministic/expected-error handling for consensus, idempotent payout guards |
 | **Frontend** | Landing, How it Works, Bounties dashboard, Reputation lookup, tx status/hash UX, EIP-6963 EVM connect (no popup conflicts) + GenLayerJS signing |
 
 ---
 
 ## Deployed Contract (Studionet)
 
-- **Contract**: `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF`
+- **Last recorded deployment (historical evidence)**: `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF`
 - **Network**: GenLayer Studionet
-- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for on-chain positive/negative test runs, tx hashes, and method coverage.
+- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for prior on-chain positive/negative test runs, tx hashes, and method coverage.
 
-> Contract address may change with redeployments; update `frontend/src/lib/config.ts` accordingly.
+> **Note:** the contract source has been improved after that deployment (API/signature and safety changes such as `withdraw_pool`, PR-to-repo binding, and removal of untrusted caller-supplied date parameters). Redeploy the updated contract and update `frontend/src/lib/config.ts` / `HUNTLAYER_CONTRACT` before use.
 
 ---
 
@@ -90,13 +90,13 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 
 | Method | Type | Description |
 |---|---|---|
-| `create_bounty(...)` | write, payable | Create & fund bounty (rewards per tier, deadline) |
+| `create_bounty(...)` | write, payable | Create & fund bounty (rewards per tier, deadline metadata) |
 | `fund_bounty(bounty_id)` | write, payable | Top-up bounty pool |
-| `submit_pr(bounty_id, pr_url, current_date)` | write | Submit PR (anti-dup, deadline/status checks) |
-| `evaluate_severity(bounty_id, submission_id, current_date)` | write | Consensus severity+confidence from PR evidence |
-| `release_bounty(bounty_id, submission_id, current_date)` | write | Verify merge & pay out; update reputation |
+| `submit_pr(bounty_id, pr_url)` | write | Submit PR (must match bounty repo, anti-dup, status checks) |
+| `evaluate_severity(bounty_id, submission_id)` | write | Consensus severity+confidence from fetched PR evidence |
+| `release_bounty(bounty_id, submission_id)` | write | Verify merge & pay out; update reputation |
 | `close_bounty(bounty_id)` | write | Creator closes bounty |
-| `close_if_expired(bounty_id, current_date)` | write | Mark closed if past deadline |
+| `withdraw_pool(bounty_id)` | write | Creator withdraws remaining pool (bounty must be closed) |
 | `reopen_evaluation(bounty_id, submission_id)` | write | Creator reopens evaluation (if unpaid) |
 | `get_bounty(bounty_id)` | view | Bounty details & pool |
 | `get_submissions(bounty_id)` | view | Submissions, severity/confidence/payout/status |
@@ -170,7 +170,9 @@ Comprehensive Studionet runs (positive & negative, tx hashes, adversarial reject
 ## Accuracy & Security Notes
 
 - **Consensus reduces, not eliminates, LLM risk:** validators independently verify evidence and compare decision fields; appeals/finality add protection, but outputs depend on prompts, sources, and validator behavior.
-- **Guards implemented:** creator-only controls, duplicate PR prevention, merge verification before payout, pool sufficiency checks, deadline handling, confidence gating/tolerance for evaluations.
+- **Guards implemented:** creator-only controls, duplicate PR prevention, PR-to-bounty repo binding, merge verification before payout, pool sufficiency checks, confidence gating/tolerance for evaluations, idempotent payout guards, and creator withdrawal of remaining pool after close.
+- **Deadline note:** `deadline` is stored as metadata and not auto-enforced by on-chain time (previous caller-supplied date checks removed to avoid untrusted enforcement). Creators should close bounties and withdraw remaining funds as needed.
+- **Transfer/finality note:** payouts update on-chain accounting and emit value transfer; frontend confirms submitted transactions against finalized/successful execution where available. As with async transfer models, delivery semantics depend on the underlying chain/runtime.
 - **Not mock/demo:** frontend and evidence flows are designed around real Studionet/on-chain interactions (use funded real wallets).
 
 ---
