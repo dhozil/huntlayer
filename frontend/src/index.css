@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 10% 8%;
+    --foreground: 210 15% 96%;
+    --card: 220 10% 11%;
+    --card-foreground: 210 15% 96%;
+    --primary: 210 10% 78%;
+    --primary-foreground: 220 12% 10%;
+    --secondary: 220 8% 18%;
+    --secondary-foreground: 210 15% 96%;
+    --muted: 220 8% 15%;
+    --muted-foreground: 215 10% 62%;
+    --accent: 220 8% 22%;
+    --accent-foreground: 210 15% 96%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 15% 96%;
+    --border: 220 8% 20%;
+    --input: 220 8% 20%;
+    --ring: 210 10% 70%;
+    --radius: 0.75rem;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; }
+}
+.glass { @apply bg-card/60 backdrop-blur-md border border-border/60; }
+.gradient-text { @apply bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent; }
