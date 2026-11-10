@@ -1,26 +1,39 @@
-# HuntLayer
+<p align="center">
+  <img src="assets/logo.svg" alt="HuntLayer logo" width="96" height="96" />
+</p>
 
-**Automated bug bounties on GenLayer** — severity tier assigned from PR evidence by AI consensus, bounty released on verified merge, with portable on-chain reputation.
+<h1 align="center">HuntLayer</h1>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/license/mit/)
-[![GenLayer Docs](https://img.shields.io/badge/Docs-GenLayer-6d5df5)](https://docs.genlayer.com/)
-[![Network](https://img.shields.io/badge/Network-Studionet-334155)](https://studio.genlayer.com)
+<p align="center"><strong>Decentralized, consensus-verified bug bounty protocol on GenLayer</strong><br/>
+Severity assigned from PR evidence by AI validator consensus · Payout released on verified merge · Portable on-chain reputation</p>
 
-> *Work verified by consensus, paid on outcome, with portable reputation.*
+<p align="center">
+  <a href="https://opensource.org/license/mit/"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"/></a>
+  <a href="https://docs.genlayer.com/"><img src="https://img.shields.io/badge/Docs-GenLayer-6d5df5" alt="GenLayer Docs"/></a>
+  <a href="https://studio.genlayer.com"><img src="https://img.shields.io/badge/Network-Studionet-334155" alt="Network: Studionet"/></a>
+</p>
+
+<p align="center"><em>Work verified by consensus, paid on outcome, with portable reputation.</em></p>
 
 ---
 
 ## Overview
 
-HuntLayer is a GenLayer Intelligent Contract + dApp for **trust-minimized bug bounty workflows**:
+**HuntLayer** bukan sekadar *Intelligent Contract* — ini adalah **protokol/platform bug bounty end-to-end** yang menggabungkan:
 
-1. **Fund a bounty** with per-severity rewards (Critical / High / Medium / Low), deadlines, and a pooled balance.
-2. **Submit a fix PR** (GitHub) to a bounty.
-3. **Evaluate severity** via GenLayer validators: PR evidence is fetched from the web and assessed by LLMs under consensus (with confidence & comparison rules).
-4. **Release on merge**: validators verify the PR is merged; if valid and funds are sufficient, payout is transferred and reputation is updated.
-5. **Portable reputation**: on-chain reputation points, merge count, and total earned per researcher.
+- **Intelligent Contract** (on-chain logic, escrow/pool, state, payout, reputation)
+- **Adjudikasi konsensus GenLayer** (validator + AI untuk evaluasi severity dari bukti PR dan verifikasi merge)
+- **Frontend dApp** (pengalaman pengguna lengkap untuk bounty lifecycle, wallet, dan reputasi)
 
-This project targets the **Future of Work** theme: outcomes adjudicated by decentralized consensus rather than a single trusted operator.
+Alur utamanya:
+
+1. **Fund a bounty** dengan reward per severity (Critical / High / Medium / Low), deadline, dan pooled balance.
+2. **Submit a fix PR** (GitHub) ke bounty.
+3. **Evaluate severity** melalui konsensus validator: bukti PR diambil dari web dan dinilai LLM dengan aturan perbandingan (severity + confidence).
+4. **Release on merge**: validator memverifikasi PR sudah merged; jika valid dan dana cukup, payout ditransfer dan reputasi diperbarui.
+5. **Portable reputation**: poin reputasi, jumlah merge, dan total earned tercatat on-chain per researcher.
+
+Menargetkan tema **Future of Work**: hasil kerja diverifikasi dan diselesaikan oleh konsensus terdesentralisasi, bukan operator tunggal.
 
 ---
 
