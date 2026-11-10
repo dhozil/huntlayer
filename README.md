@@ -53,11 +53,13 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 
 ## Deployed Contract (Studionet)
 
-- **Last recorded deployment (historical evidence)**: `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF`
+- **Current contract (improved, redeployed)**: `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2`
+- **Deploy tx**: `0x58da5bd6efecc2ec2805dfe86e97635dac7fa14bb09be185b0f3200b7dd3043a` (ACCEPTED)
 - **Network**: GenLayer Studionet
-- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for prior on-chain positive/negative test runs, tx hashes, and method coverage.
+- **Frontend config**: `frontend/src/lib/config.ts` points to the current contract.
+- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for real on-chain method tests (positive/negative), merged-PR release flow, and `gltest` integration/adversarial results.
 
-> **Note:** the contract source has been improved after that deployment (API/signature and safety changes such as `withdraw_pool`, PR-to-repo binding, and removal of untrusted caller-supplied date parameters). Redeploy the updated contract and update `frontend/src/lib/config.ts` / `HUNTLAYER_CONTRACT` before use.
+> Previous deployment (historical): `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures). See historical section in `TEST_EVIDENCE.md`.
 
 ---
 
@@ -163,7 +165,7 @@ Environment variables for tests/scripts (no hardcoded keys in repo):
 
 ### On-chain evidence
 
-Comprehensive Studionet runs (positive & negative, tx hashes, adversarial rejections) are documented in **[`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md)**.
+Studionet redeploy and real-wallet runs (positive & negative tx hashes, merged-PR release, and `gltest` integration/adversarial passes) are documented in **[`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md)**.
 
 ---
 

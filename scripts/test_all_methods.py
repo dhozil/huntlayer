@@ -20,7 +20,12 @@ def wait(tx_hash, label):
     r = client.wait_for_transaction_receipt(tx_hash)
     status = r.get("status_name") or r.get("status")
     res = r.get("result_name")
-    print(f"[{label}] tx={tx_hash} status={status} result={res}")
+    leader = (r.get("consensus_data") or {}).get("leader_receipt") or []
+    exec_res = leader[0].get("execution_result") if leader else None
+    print(f"[{label}] tx={tx_hash} status={status} result={res} exec={exec_res}")
+    if exec_res == "ERROR":
+        payload = leader[0].get("result", {}).get("payload") if leader else None
+        raise RuntimeError(f"[{label}] execution error: {payload}")
     return r
 
 def write(c, addr, method, args=None, value=0, label=""):
