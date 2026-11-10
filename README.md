@@ -1,101 +1,183 @@
-# HuntLayer — Automated Bug Bounties
+# HuntLayer
+
+**Automated bug bounties on GenLayer** — severity tier assigned from PR evidence by AI consensus, bounty released on verified merge, with portable on-chain reputation.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/license/mit/)
-[![Discord](https://dcbadge.vercel.app/api/server/8Jm4v89VAu?compact=true&style=flat)](https://discord.gg/8Jm4v89VAu)
-[![Telegram](https://img.shields.io/badge/Telegram--T.svg?style=social&logo=telegram)](https://t.me/genlayer)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/yeagerai.svg?style=social&label=Follow%20%40GenLayer)](https://x.com/GenLayer)
-[![GitHub star chart](https://img.shields.io/github/stars/yeagerai/genlayer-project-boilerplate?style=social)](https://star-history.com/#yeagerai/genlayer-js)
+[![GenLayer Docs](https://img.shields.io/badge/Docs-GenLayer-6d5df5)](https://docs.genlayer.com/)
+[![Network](https://img.shields.io/badge/Network-Studionet-334155)](https://studio.genlayer.com)
 
-## 👀 About
-This project includes the boilerplate code for a GenLayer use case implementation, specifically a football bets game.
+> *Work verified by consensus, paid on outcome, with portable reputation.*
 
-## 📦 What's included
-- Basic requirements to deploy and test your intelligent contracts locally
-- Configuration file template
-<!-- - Test functions to write complete end-to-end tests -->
-- An example of an intelligent contract (Football Bets)
-- Example end-to-end tests for the contract provided
+---
 
-## 🛠️ Requirements
-- A running GenLayer Studio (Install from [Docs](https://docs.genlayer.com/developers/intelligent-contracts/tooling-setup#using-the-genlayer-studio) or work with the hosted version of [GenLayer Studio](https://studio.genlayer.com/)). If you are working locally, this repository code does not need to be located in the same directory as the Genlayer Studio.
+## Overview
 
-## 🚀 Steps to run this example
+HuntLayer is a GenLayer Intelligent Contract + dApp for **trust-minimized bug bounty workflows**:
 
-### 1. Configure environment
-   Rename the `.env.example` file to `.env`, then fill in the values for your configuration. The provided values are the standard values for a tipical GenLayer Studio deployed locally.
+1. **Fund a bounty** with per-severity rewards (Critical / High / Medium / Low), deadlines, and a pooled balance.
+2. **Submit a fix PR** (GitHub) to a bounty.
+3. **Evaluate severity** via GenLayer validators: PR evidence is fetched from the web and assessed by LLMs under consensus (with confidence & comparison rules).
+4. **Release on merge**: validators verify the PR is merged; if valid and funds are sufficient, payout is transferred and reputation is updated.
+5. **Portable reputation**: on-chain reputation points, merge count, and total earned per researcher.
 
-### 2. Deploy the contract
-   Deploy the contract from `/contracts/football_bets.py` using the Studio's UI:
-   1. Open the GenLayer Studio interface in your web browser (usually at http://localhost:8080).
-   2. Create a new file in the "Contracts" section and paste the content of `/contracts/football_bets.py` (the content is different than the existing contract from the examples).
-   3. Navigate to the "Run and Debug" section.
-   4. Follow the on-screen instructions to complete the deployment process.
+This project targets the **Future of Work** theme: outcomes adjudicated by decentralized consensus rather than a single trusted operator.
 
-### 3. Setup the frontend environment
-  1. All the content of the dApp is located in the `/app` folder.
-  2. Rename the `.env.example` file in the `/app` folder to `.env`.
-  3. Add the deployed contract address to the `/app/.env` under the variable `VITE_CONTRACT_ADDRESS`
+---
 
-### 4. Run the frontend Vue app
-   Ensure your GenLayer Studio is running, and execute the following commands in your terminal:
-   ```shell
-   cd app
-   npm install
-   npm run dev
-   ```
-   The terminal should display a link to access your frontend app (usually at http://localhost:5173/).
-   For more information on the code see [GenLayerJS](https://github.com/yeagerai/genlayer-js).
-   
-### 5. Test contracts
-1. Install the Python packages listed in the `requirements.txt` file in a virtual environment.
-2. Make sure your GenLayer Studio is running. Then execute the following command in your terminal:
-   ```shell
-   gltest
-   ```
+## Key Features
 
-## ⚽ How the Football Bets Contract Works
+| Area | Capability |
+|---|---|
+| **Bounty lifecycle** | Create & fund bounties, top-up pool, set deadline, close/expire |
+| **Submissions** | Submit PR URL, anti-duplication (same PR cannot be reused), deadline/status checks |
+| **AI severity consensus** | Leader/validator evaluation from GitHub PR evidence; severity + confidence; tolerance-based agreement; critical claims gated by confidence |
+| **Payout on merge** | Web-verified merge status before release; pool sufficiency checks; on-chain value transfer |
+| **Reputation** | Weighted reputation (Critical 10 / High 5 / Medium 3 / Low 1), merge count, total earned |
+| **Safety & controls** | Creator-only actions (close/reopen), re-evaluation path, deterministic/expected-error handling for consensus, appeal-compatible design |
+| **Frontend** | Landing, How it Works, Bounties dashboard, Reputation lookup, tx status/hash UX, EIP-6963 EVM connect (no popup conflicts) + GenLayerJS signing |
 
-The Football Bets contract allows users to create bets for football matches, resolve those bets, and earn points for correct bets. Here's a breakdown of its main functionalities:
+---
 
-1. Creating Bets:
-   - Users can create a bet for a specific football match by providing the game date, team names, and their predicted winner.
-   - The contract checks if the game has already finished and if the user has already made a bet for this match.
+## Deployed Contract (Studionet)
 
-2. Resolving Bets:
-   - After a match has concluded, users can resolve their bets.
-   - The contract fetches the actual match result from a specified URL.
-   - If the Bet was correct, the user earns a point.
+- **Contract**: `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF`
+- **Network**: GenLayer Studionet
+- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for on-chain positive/negative test runs, tx hashes, and method coverage.
 
-3. Querying Data:
-   - Users can retrieve all bets.
-   - The contract also allows querying of points, either for all players or for a specific player.
+> Contract address may change with redeployments; update `frontend/src/lib/config.ts` accordingly.
 
-4. Getting Points:
-   - Points are awarded for correct bets.
-   - Users can check their total points or the points of any player.
+---
 
-## 🧪 Tests
+## Repository Structure
 
-This project includes integration tests that interact with the contract deployed in the Studio. These tests cover the main functionalities of the Football Bets contract:
+```text
+.
+├─ contracts/
+│  └─ huntlayer.py            # HuntLayer Intelligent Contract
+├─ frontend/                  # Production frontend (React + Vite + TS + Tailwind)
+│  ├─ src/components/ui/      # UI primitives + magnified-bento hero
+│  ├─ src/pages/              # Landing, HowItWorks, Bounties, Reputation
+│  ├─ src/services/           # genlayer-js + EIP-6963 wallet services
+│  └─ src/lib/                # config, utils
+├─ test/                      # Integration/adversarial tests (gltest)
+├─ scripts/                   # On-chain test/deploy helper scripts
+├─ TEST_EVIDENCE.md           # Studionet execution evidence
+├─ gltest.config.yaml
+└─ README.md
+```
 
-1. Creating a bet
-2. Resolving a bet
-3. Querying bets for a player
-4. Querying points for a player
+---
 
-The tests simulate real-world interactions with the contract, ensuring that it behaves correctly under various scenarios. They use the GenLayer Studio to deploy and interact with the contract, providing a comprehensive check of the contract's functionality in a controlled environment.
+## Intelligent Contract
 
-To run the tests, use the `gltest` command as mentioned in the "Steps to run this example" section.
+**File:** `contracts/huntlayer.py`  
+**Class:** `HuntLayer(gl.Contract)` (pinned GenVM runner dependency)
 
+### Methods (high level)
 
-## 💬 Community
-Connect with the GenLayer community to discuss, collaborate, and share insights:
-- **[Discord Channel](https://discord.gg/8Jm4v89VAu)**: Our primary hub for discussions, support, and announcements.
-- **[Telegram Group](https://t.me/genlayer)**: For more informal chats and quick updates.
+| Method | Type | Description |
+|---|---|---|
+| `create_bounty(...)` | write, payable | Create & fund bounty (rewards per tier, deadline) |
+| `fund_bounty(bounty_id)` | write, payable | Top-up bounty pool |
+| `submit_pr(bounty_id, pr_url, current_date)` | write | Submit PR (anti-dup, deadline/status checks) |
+| `evaluate_severity(bounty_id, submission_id, current_date)` | write | Consensus severity+confidence from PR evidence |
+| `release_bounty(bounty_id, submission_id, current_date)` | write | Verify merge & pay out; update reputation |
+| `close_bounty(bounty_id)` | write | Creator closes bounty |
+| `close_if_expired(bounty_id, current_date)` | write | Mark closed if past deadline |
+| `reopen_evaluation(bounty_id, submission_id)` | write | Creator reopens evaluation (if unpaid) |
+| `get_bounty(bounty_id)` | view | Bounty details & pool |
+| `get_submissions(bounty_id)` | view | Submissions, severity/confidence/payout/status |
+| `get_reputation(researcher)` | view | Reputation points |
+| `get_contributor_stats(researcher)` | view | Reputation, merges, total earned |
 
-Your continuous feedback drives better product development. Please engage with us regularly to test, discuss, and improve GenLayer.
+**Consensus design:** non-deterministic web/LLM steps use leader/validator comparison (severity match + confidence tolerance), independent evidence fetching, and classified errors for robust agreement.
 
-## 📖 Documentation
-For detailed information on how to use GenLayerJS SDK, please refer to our [documentation](https://docs.genlayer.com/).
+---
 
-## 📜 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Frontend
+
+Located in **`frontend/`** (Vite + React + TypeScript + Tailwind).
+
+- **GenLayer integration:** `genlayer-js` client (Studionet), read/write, tx wait/receipt handling, fee-estimation best-effort, provider-based connect aligned with docs.
+- **Wallet:** EIP-6963 discovery to select a specific injected EVM provider (avoids popup conflicts) + real-wallet key signing option for Studionet; **no demo keys, no mock data — UI reads from on-chain state**.
+- **UX:** pending/success/error states, tx hash display/copy, Studio link, responsive gray semi-dark theme, HuntLayer hero (magnified bento).
+
+### Run locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Build:
+
+```bash
+npm run build
+npm run preview
+```
+
+### Deploy (Vercel)
+
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- Ensure `frontend/src/lib/config.ts` points to the intended contract/network.
+
+---
+
+## Testing & Validation
+
+### Lint / schema
+
+```bash
+genvm-lint check contracts/huntlayer.py
+```
+
+### Integration tests (gltest)
+
+```bash
+# requires configured network and funded test accounts as appropriate
+gltest test/test_huntlayer.py -v -s --network studionet
+gltest test/test_adversarial.py -v -s --network studionet
+```
+
+Environment variables for tests/scripts (no hardcoded keys in repo):
+
+- `CREATOR_KEY` — funded Studionet wallet private key
+- `ADVERSARY_KEY` — adversary wallet private key (for adversarial tests)
+- `HUNTLAYER_CONTRACT` — deployed contract address (optional override)
+
+### On-chain evidence
+
+Comprehensive Studionet runs (positive & negative, tx hashes, adversarial rejections) are documented in **[`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md)**.
+
+---
+
+## Accuracy & Security Notes
+
+- **Consensus reduces, not eliminates, LLM risk:** validators independently verify evidence and compare decision fields; appeals/finality add protection, but outputs depend on prompts, sources, and validator behavior.
+- **Guards implemented:** creator-only controls, duplicate PR prevention, merge verification before payout, pool sufficiency checks, deadline handling, confidence gating/tolerance for evaluations.
+- **Not mock/demo:** frontend and evidence flows are designed around real Studionet/on-chain interactions (use funded real wallets).
+
+---
+
+## Tech Stack
+
+- **Contract:** GenLayer Intelligent Contracts (Python, GenVM)
+- **Consensus/Runtime:** Optimistic Democracy, non-deterministic web+LLM ops
+- **Frontend:** React, Vite, TypeScript, Tailwind, shadcn-style UI, GenLayerJS, EIP-6963
+- **Tooling:** genlayer CLI, genvm-lint, gltest
+
+---
+
+## Links
+
+- [GenLayer Documentation](https://docs.genlayer.com/)
+- [GenLayer Studio](https://studio.genlayer.com)
+- [GenLayerJS](https://github.com/genlayerlabs/genlayer-js)
+- [Test Evidence](./TEST_EVIDENCE.md)
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
