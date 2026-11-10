@@ -19,21 +19,21 @@ Severity assigned from PR evidence by AI validator consensus · Payout released 
 
 ## Overview
 
-**HuntLayer** bukan sekadar *Intelligent Contract* — ini adalah **protokol/platform bug bounty end-to-end** yang menggabungkan:
+**HuntLayer** is not just an *Intelligent Contract* — it is a complete **end-to-end bug bounty protocol/platform** that combines:
 
-- **Intelligent Contract** (on-chain logic, escrow/pool, state, payout, reputation)
-- **Adjudikasi konsensus GenLayer** (validator + AI untuk evaluasi severity dari bukti PR dan verifikasi merge)
-- **Frontend dApp** (pengalaman pengguna lengkap untuk bounty lifecycle, wallet, dan reputasi)
+- **Intelligent Contract** (on-chain logic, escrow/pool, state, payouts, reputation)
+- **GenLayer consensus adjudication** (validators + AI to evaluate severity from PR evidence and verify merges)
+- **Frontend dApp** (full user experience for the bounty lifecycle, wallet, and reputation)
 
-Alur utamanya:
+Core workflow:
 
-1. **Fund a bounty** dengan reward per severity (Critical / High / Medium / Low), deadline, dan pooled balance.
-2. **Submit a fix PR** (GitHub) ke bounty.
-3. **Evaluate severity** melalui konsensus validator: bukti PR diambil dari web dan dinilai LLM dengan aturan perbandingan (severity + confidence).
-4. **Release on merge**: validator memverifikasi PR sudah merged; jika valid dan dana cukup, payout ditransfer dan reputasi diperbarui.
-5. **Portable reputation**: poin reputasi, jumlah merge, dan total earned tercatat on-chain per researcher.
+1. **Fund a bounty** with rewards per severity tier (Critical / High / Medium / Low), a deadline, and a pooled balance.
+2. **Submit a fix PR** (GitHub) to a bounty.
+3. **Evaluate severity** through validator consensus: PR evidence is fetched from the web and assessed by LLMs using comparison rules (severity + confidence).
+4. **Release on merge**: validators verify the PR is merged; if valid and funds are sufficient, the payout is transferred and reputation is updated.
+5. **Portable reputation**: reputation points, merge count, and total earned are recorded on-chain per researcher.
 
-Menargetkan tema **Future of Work**: hasil kerja diverifikasi dan diselesaikan oleh konsensus terdesentralisasi, bukan operator tunggal.
+Built for the **Future of Work** theme: outcomes are verified and settled by decentralized consensus, not a single operator.
 
 ---
 
