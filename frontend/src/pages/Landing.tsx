@@ -27,8 +27,8 @@ export default function Landing() {
               HuntLayer is an automated bug bounty protocol: severity tiers assigned from PR evidence by AI consensus, payouts released on verified merge, and reputation that travels with you.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/bounties"><Button size="lg">Launch App <ArrowRight className="h-4 w-4"/></Button></Link>
-              <Link to="/how-it-works"><Button size="lg" variant="outline">How it Works</Button></Link>
+              <Link to="/explore"><Button size="lg">Explore Bounties <ArrowRight className="h-4 w-4"/></Button></Link>
+              <Link to="/create"><Button size="lg" variant="outline">Create Bounty</Button></Link>
             </div>
             <div className="mt-8 grid grid-cols-3 gap-4 max-w-md text-sm">
               <div><div className="text-2xl font-semibold text-foreground">4</div><div className="text-muted-foreground">Severity tiers</div></div>
@@ -62,9 +62,12 @@ export default function Landing() {
         <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 to-zinc-500/5 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-semibold">Ready to hunt or fund bounties?</h2>
-            <p className="text-muted-foreground mt-2">Connect a Studionet wallet and interact with the live HuntLayer contract.</p>
+            <p className="text-muted-foreground mt-2">Browse public bounties to submit fixes, or create and fund your own bounty on Studionet.</p>
           </div>
-          <Link to="/bounties"><Button size="lg">Open Bounties Dashboard</Button></Link>
+          <div className="flex gap-3">
+            <Link to="/explore"><Button size="lg">Explore Bounties</Button></Link>
+            <Link to="/create"><Button size="lg" variant="outline">Create Bounty</Button></Link>
+          </div>
         </div>
       </section>
     </div>

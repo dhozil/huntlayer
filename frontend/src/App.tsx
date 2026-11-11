@@ -3,7 +3,8 @@ import { Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import Landing from "@/pages/Landing";
 import HowItWorks from "@/pages/HowItWorks";
-import Bounties from "@/pages/Bounties";
+import ExploreBounties from "@/pages/ExploreBounties";
+import CreateBounty from "@/pages/CreateBounty";
 import Reputation from "@/pages/Reputation";
 import { getAddress, disconnectAll, connectWithEvmProvider } from "@/services/genlayer";
 import { discoverProviders, getProviders, connectEvmProvider } from "@/services/evmWallet";
@@ -58,7 +59,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/bounties" element={<Bounties connected={!!addr} />} />
+          <Route path="/explore" element={<ExploreBounties connected={!!addr} />} />
+          <Route path="/create" element={<CreateBounty connected={!!addr} />} />
+          <Route path="/bounties" element={<ExploreBounties connected={!!addr} />} />
           <Route path="/reputation" element={<Reputation connected={!!addr} />} />
         </Routes>
       </main>

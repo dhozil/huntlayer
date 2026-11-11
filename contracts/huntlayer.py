@@ -473,3 +473,7 @@ Return JSON only:
         merges = int(self.merge_count[addr]) if addr in self.merge_count else 0
         earned = int(self.total_earned[addr]) if addr in self.total_earned else 0
         return {"reputation": rep, "merges": merges, "total_earned": earned}
+
+    @gl.public.view
+    def get_bounty_count(self) -> int:
+        return int(self.bounty_counter)

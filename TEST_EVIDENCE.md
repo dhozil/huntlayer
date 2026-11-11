@@ -2,7 +2,15 @@
 
 Documentation of **real on-chain execution on GenLayer Studionet** (not mocked), using funded Studionet wallets (kept private, not in repo).
 
-## Current Deployment (improved contract)
+## Latest Deployment (current frontend target)
+
+- **Network:** GenLayer Studionet
+- **Contract:** `0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE`
+- **Deploy tx:** `0xf84a77c9311955a5b8fdb939eac41515bf308552b83f8687c0c78cf94d194521` (**ACCEPTED**)
+- **Change:** adds `get_bounty_count()` view to support public bounty listing in the Explore UI (no changes to existing write logic).
+- **Smoke check:** `get_bounty_count()` → `0` on fresh deployment.
+
+## Tested Deployment (improved contract, real on-chain runs)
 
 - **Network:** GenLayer Studionet
 - **Contract:** `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2`

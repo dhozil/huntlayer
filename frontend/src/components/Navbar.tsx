@@ -9,8 +9,9 @@ export function Navbar({ address, onDisconnect, onConnectClick, connecting }: { 
   const link = ({isActive}:{isActive:boolean}) => `px-3 py-2 rounded-md text-sm font-medium transition ${isActive?"text-primary bg-primary/10":"text-muted-foreground hover:text-foreground hover:bg-muted/50"}`;
   const links = [
     {to:"/", label:"Home"},
+    {to:"/explore", label:"Explore"},
+    {to:"/create", label:"Create Bounty"},
     {to:"/how-it-works", label:"How it Works"},
-    {to:"/bounties", label:"Bounties"},
     {to:"/reputation", label:"Reputation"},
   ];
   return (

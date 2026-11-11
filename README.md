@@ -53,13 +53,13 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 
 ## Deployed Contract (Studionet)
 
-- **Current contract (improved, redeployed)**: `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2`
-- **Deploy tx**: `0x58da5bd6efecc2ec2805dfe86e97635dac7fa14bb09be185b0f3200b7dd3043a` (ACCEPTED)
+- **Current contract (latest, redeployed)**: `0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE`
+- **Deploy tx**: `0xf84a77c9311955a5b8fdb939eac41515bf308552b83f8687c0c78cf94d194521` (ACCEPTED)
 - **Network**: GenLayer Studionet
 - **Frontend config**: `frontend/src/lib/config.ts` points to the current contract.
-- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for real on-chain method tests (positive/negative), merged-PR release flow, and `gltest` integration/adversarial results.
+- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for real on-chain method tests (positive/negative), merged-PR release flow, and `gltest` integration/adversarial results on the improved contract series.
 
-> Previous deployment (historical): `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures). See historical section in `TEST_EVIDENCE.md`.
+> Previous deployments (historical): `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2` (improved, tested on Studionet; deploy `0x58da5bd...`) and `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures). The latest redeploy adds public bounty listing support (`get_bounty_count`) for the Explore UI.
 
 ---
 
@@ -104,6 +104,7 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 | `get_submissions(bounty_id)` | view | Submissions, severity/confidence/payout/status |
 | `get_reputation(researcher)` | view | Reputation points |
 | `get_contributor_stats(researcher)` | view | Reputation, merges, total earned |
+| `get_bounty_count()` | view | Total number of bounties created (for public listing) |
 
 **Consensus design:** non-deterministic web/LLM steps use leader/validator comparison (severity match + confidence tolerance), independent evidence fetching, and classified errors for robust agreement.
 

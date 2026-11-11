@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = "0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2";
+export const CONTRACT_ADDRESS = "0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE";
 export const NETWORK_NAME = "GenLayer Studionet";
 export const STUDIO_URL = "https://studio.genlayer.com";
 export const DOCS_URL = "https://docs.genlayer.com";
