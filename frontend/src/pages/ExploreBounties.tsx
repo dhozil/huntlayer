@@ -76,8 +76,14 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
       for (let i = count - 1; i >= 0; i--) {
         const id = `bounty_${i}`;
         try {
-          const b = await readContract("get_bounty", [id]);
-          if (b && (b.id || b.title || b.creator)) items.push({ ...b, id: b.id || id });
+          const raw = await readContract("get_bounty", [id]);
+          const b: any = raw && typeof raw === "object" && "value" in raw && raw.value && typeof raw.value === "object" ? raw.value : raw;
+          if (b && typeof b === "object" && Object.keys(b).length > 0) {
+            items.push({ ...b, id: b.id || id });
+          } else {
+            console.warn("Unexpected bounty shape", id, raw);
+            errors.push(`${id}: unexpected response shape`);
+          }
         } catch (e:any) {
           errors.push(`${id}: ${e?.shortMessage || e?.message || String(e)}`);
         }
