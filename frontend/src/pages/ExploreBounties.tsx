@@ -66,20 +66,34 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
     if (!connected) { setTx({ status:"error", message:"Connect wallet to load public bounties (on-chain read)." }); return; }
     setLoadingList(true);
     try {
-      const count = Number(await readContract("get_bounty_count", []));
+      const rawCount = await readContract("get_bounty_count", []);
+      const count = typeof rawCount === "bigint" ? Number(rawCount) : Number(rawCount?.value ?? rawCount);
       const items: any[] = [];
+      const errors: string[] = [];
+      if (!Number.isFinite(count) || count < 0) {
+        throw new Error(`Unexpected bounty count: ${String(rawCount)}`);
+      }
       for (let i = count - 1; i >= 0; i--) {
         const id = `bounty_${i}`;
         try {
           const b = await readContract("get_bounty", [id]);
-          if (b && (b.id || b.title)) items.push({ ...b, id: b.id || id });
-        } catch {}
+          if (b && (b.id || b.title || b.creator)) items.push({ ...b, id: b.id || id });
+        } catch (e:any) {
+          errors.push(`${id}: ${e?.shortMessage || e?.message || String(e)}`);
+        }
       }
       setList(items);
-      if (!items.length) setTx({ status:"success", message:"No bounties found on-chain yet." });
-      else setTx({ status:"success", message:`Loaded ${items.length} bount${items.length===1?"y":"ies"} from chain.` });
+      if (items.length) {
+        setTx({ status:"success", message:`Loaded ${items.length}/${count} bount${count===1?"y":"ies"} from chain.` + (errors.length ? ` (${errors.length} failed to load)` : "") });
+      } else if (count === 0) {
+        setTx({ status:"success", message:"No bounties found on-chain yet for this contract." });
+      } else {
+        console.error("Failed to load bounties", errors);
+        setTx({ status:"error", message:`Found ${count} bounties on-chain but failed to load details. ${errors[0] || ""}` });
+      }
     } catch(e:any) {
-      setTx({ status:"error", message: e?.message || String(e) });
+      console.error(e);
+      setTx({ status:"error", message: e?.shortMessage || e?.message || String(e) });
     }
     setLoadingList(false);
   }
@@ -212,7 +226,7 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mt-6">Amounts shown in GEN. Public bounty data is read on-chain (wallet connection required in this app). Creators can create/manage bounties from the <b>Create Bounty</b> page.</p>
+      <p className="text-xs text-muted-foreground mt-6">Amounts shown in GEN. Public bounty data is read on-chain from <code className="bg-muted/50 px-1 rounded">{CONTRACT_ADDRESS}</code> (wallet connection required). Creators can create/manage bounties from the <b>Create Bounty</b> page.</p>
     </div>
   );
 }
