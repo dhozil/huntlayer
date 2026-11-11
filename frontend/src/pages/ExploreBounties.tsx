@@ -27,6 +27,20 @@ function fmtGen(v: any): string {
     return `${neg ? "-" : ""}${i.toString()}${f ? "." + f : ""} GEN`;
   } catch { return String(v); }
 }
+function toPlain(value: any): any {
+  if (value instanceof Map) {
+    const obj: any = {};
+    for (const [k, v] of value.entries()) obj[String(k)] = toPlain(v);
+    return obj;
+  }
+  if (Array.isArray(value)) return value.map(toPlain);
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    const obj: any = {};
+    for (const [k, v] of Object.entries(value)) obj[k] = toPlain(v);
+    return obj;
+  }
+  return value;
+}
 
 export default function ExploreBounties({ connected }: { connected: boolean }) {
   const [tx, setTx] = useState<TxState>(idle);
@@ -77,7 +91,7 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
         const id = `bounty_${i}`;
         try {
           const raw = await readContract("get_bounty", [id]);
-          const b: any = raw && typeof raw === "object" && "value" in raw && raw.value && typeof raw.value === "object" ? raw.value : raw;
+          const b: any = toPlain(raw && typeof raw === "object" && "value" in raw && (raw as any).value && typeof (raw as any).value === "object" ? (raw as any).value : raw);
           if (b && typeof b === "object" && Object.keys(b).length > 0) {
             items.push({ ...b, id: b.id || id });
           } else {
@@ -108,8 +122,8 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
     if (!connected) { setTx({ status:"error", message:"Connect wallet to view bounty details." }); return; }
     setLoadingDetail(true);
     try {
-      const b = await readContract("get_bounty", [id]);
-      const s = await readContract("get_submissions", [id]);
+      const b = toPlain(await readContract("get_bounty", [id]));
+      const s = toPlain(await readContract("get_submissions", [id]));
       setBounty(b); setSubs(s); setSelectedId(id);
       if (!silent) setTx({ status:"success", message:`Loaded ${id}.` });
     } catch(e:any) { if (!silent) setTx({ status:"error", message: e?.message || String(e) }); }

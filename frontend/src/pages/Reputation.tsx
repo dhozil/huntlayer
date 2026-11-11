@@ -15,6 +15,20 @@ function fmtGen(v: any): string {
     return `${neg ? "-" : ""}${i.toString()}${f ? "." + f : ""} GEN`;
   } catch { return String(v); }
 }
+function toPlain(value: any): any {
+  if (value instanceof Map) {
+    const obj: any = {};
+    for (const [k, v] of value.entries()) obj[String(k)] = toPlain(v);
+    return obj;
+  }
+  if (Array.isArray(value)) return value.map(toPlain);
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    const obj: any = {};
+    for (const [k, v] of Object.entries(value)) obj[k] = toPlain(v);
+    return obj;
+  }
+  return value;
+}
 
 export default function Reputation({ connected }: { connected: boolean }) {
   const [addr, setAddr] = useState(getAddress() || "");
@@ -29,7 +43,7 @@ export default function Reputation({ connected }: { connected: boolean }) {
     setErr(""); setLoading(true);
     try {
       const r = await readContract("get_reputation", [addr]);
-      const s = await readContract("get_contributor_stats", [addr]);
+      const s = toPlain(await readContract("get_contributor_stats", [addr]));
       setRep(Number(r)); setStats(s);
     } catch(e:any) { setErr(e?.message || String(e)); }
     setLoading(false);
