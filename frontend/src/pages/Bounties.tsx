@@ -10,8 +10,23 @@ import { Search, PlusCircle, Coins, Send, CheckCircle, GitMerge, Lock, RefreshCw
 
 const idle: TxState = { status: "idle" };
 
-function wei(v: string) { try { return BigInt(v || "0"); } catch { return 0n; } }
-function fmtWei(v: any) { try { const n = BigInt(v); return (Number(n)/1e18).toFixed(4)+" GEN"; } catch { return String(v); } }
+function parseGenToWei(v: string): bigint {
+  const s = (v || "0").trim();
+  if (!/^\d*(\.\d*)?$/.test(s) || s === "" || s === ".") return 0n;
+  const [i, f = ""] = s.split(".");
+  const frac = (f + "0".repeat(18)).slice(0, 18);
+  return BigInt(i || "0") * 10n ** 18n + BigInt(frac);
+}
+function fmtGen(v: any): string {
+  try {
+    const n = BigInt(v ?? 0);
+    const neg = n < 0n;
+    const x = neg ? -n : n;
+    const i = x / 10n ** 18n;
+    const f = (x % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+    return `${neg ? "-" : ""}${i.toString()}${f ? "." + f : ""} GEN`;
+  } catch { return String(v); }
+}
 
 export default function Bounties({ connected }: { connected: boolean }) {
   const [tx, setTx] = useState<TxState>(idle);
@@ -20,10 +35,10 @@ export default function Bounties({ connected }: { connected: boolean }) {
   const [subs, setSubs] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
 
-  // create form
-  const [c, setC] = useState({ title:"", desc:"", repo:"", rc:"10000000000000000000", rh:"5000000000000000000", rm:"2000000000000000000", rl:"1000000000000000000", deadline:"2099-12-31", fund:"1000000000000000000" });
+  // create form (amounts in GEN)
+  const [c, setC] = useState({ title:"", desc:"", repo:"", rc:"10", rh:"5", rm:"2", rl:"1", deadline:"2099-12-31", fund:"1" });
   // action inputs
-  const [fundAmt, setFundAmt] = useState("500000000000000000");
+  const [fundAmt, setFundAmt] = useState("0.5");
   const [prUrl, setPrUrl] = useState("https://github.com/owner/repo/pull/1");
   const [subId, setSubId] = useState("sub_0");
 
@@ -84,16 +99,16 @@ export default function Bounties({ connected }: { connected: boolean }) {
             <Input placeholder="Description" value={c.desc} onChange={e=>setC({...c,desc:e.target.value})} />
             <Input placeholder="Repo (owner/name)" value={c.repo} onChange={e=>setC({...c,repo:e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
-              <div><label className="text-xs text-muted-foreground">Critical (wei)</label><Input value={c.rc} onChange={e=>setC({...c,rc:e.target.value})}/></div>
-              <div><label className="text-xs text-muted-foreground">High (wei)</label><Input value={c.rh} onChange={e=>setC({...c,rh:e.target.value})}/></div>
-              <div><label className="text-xs text-muted-foreground">Medium (wei)</label><Input value={c.rm} onChange={e=>setC({...c,rm:e.target.value})}/></div>
-              <div><label className="text-xs text-muted-foreground">Low (wei)</label><Input value={c.rl} onChange={e=>setC({...c,rl:e.target.value})}/></div>
+              <div><label className="text-xs text-muted-foreground">Critical reward (GEN)</label><Input value={c.rc} onChange={e=>setC({...c,rc:e.target.value})}/></div>
+              <div><label className="text-xs text-muted-foreground">High reward (GEN)</label><Input value={c.rh} onChange={e=>setC({...c,rh:e.target.value})}/></div>
+              <div><label className="text-xs text-muted-foreground">Medium reward (GEN)</label><Input value={c.rm} onChange={e=>setC({...c,rm:e.target.value})}/></div>
+              <div><label className="text-xs text-muted-foreground">Low reward (GEN)</label><Input value={c.rl} onChange={e=>setC({...c,rl:e.target.value})}/></div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div><label className="text-xs text-muted-foreground">Deadline (YYYY-MM-DD)</label><Input value={c.deadline} onChange={e=>setC({...c,deadline:e.target.value})}/></div>
-              <div><label className="text-xs text-muted-foreground">Initial fund (wei)</label><Input value={c.fund} onChange={e=>setC({...c,fund:e.target.value})}/></div>
+              <div><label className="text-xs text-muted-foreground">Initial fund (GEN)</label><Input value={c.fund} onChange={e=>setC({...c,fund:e.target.value})}/></div>
             </div>
-            <Button className="w-full" disabled={tx.status==="pending"} onClick={()=>run("Create bounty", ()=>writeContract("create_bounty",[c.title,c.desc,c.repo,Number(c.rc),Number(c.rh),Number(c.rm),Number(c.rl),c.deadline], wei(c.fund)))}>Create & Fund</Button>
+            <Button className="w-full" disabled={tx.status==="pending"} onClick={()=>run("Create bounty", ()=>writeContract("create_bounty",[c.title,c.desc,c.repo,parseGenToWei(c.rc),parseGenToWei(c.rh),parseGenToWei(c.rm),parseGenToWei(c.rl),c.deadline], parseGenToWei(c.fund)))}>Create & Fund</Button>
           </CardContent>
         </Card>
 
@@ -109,8 +124,8 @@ export default function Bounties({ connected }: { connected: boolean }) {
                 <div className="flex items-center justify-between"><span className="font-semibold">{bounty.title || bounty.id}</span><Badge variant={bounty.status==="open"?"success":"secondary"}>{bounty.status}</Badge></div>
                 <div className="text-muted-foreground">{bounty.description}</div>
                 <div>Repo: <b>{bounty.repo}</b> · Deadline: <b>{bounty.deadline || "—"}</b></div>
-                <div>Pool: <b className="text-primary">{fmtWei(bounty.pool)}</b> · Funded: {fmtWei(bounty.total_funded)}</div>
-                <div className="text-xs">Rewards (wei): C {String(bounty.reward_critical)} / H {String(bounty.reward_high)} / M {String(bounty.reward_medium)} / L {String(bounty.reward_low)}</div>
+                <div>Pool: <b className="text-primary">{fmtGen(bounty.pool)}</b> · Funded: {fmtGen(bounty.total_funded)}</div>
+                <div className="text-xs">Rewards: Critical {fmtGen(bounty.reward_critical)} · High {fmtGen(bounty.reward_high)} · Medium {fmtGen(bounty.reward_medium)} · Low {fmtGen(bounty.reward_low)}</div>
                 <div className="text-xs text-muted-foreground">Creator: {bounty.creator}</div>
               </div>
             ) : bounty && <p className="text-sm text-muted-foreground">No bounty found.</p>}
@@ -121,7 +136,7 @@ export default function Bounties({ connected }: { connected: boolean }) {
                   <div key={id} className="rounded-lg border p-3 text-sm space-y-1">
                     <div className="flex items-center justify-between"><span className="font-mono text-xs">{id}</span><div className="flex gap-1">{sev(s)}{s.paid && <Badge variant="success">paid</Badge>}</div></div>
                     <div className="break-all text-xs text-muted-foreground">{s.pr_url}</div>
-                    <div className="text-xs">Evaluated: {String(s.evaluated)} · Status: {s.status} · Payout: {String(s.payout)} · Confidence: {String(s.confidence ?? 0)}</div>
+                    <div className="text-xs">Evaluated: {String(s.evaluated)} · Status: {s.status} · Payout: {fmtGen(s.payout)} · Confidence: {String(s.confidence ?? 0)}%</div>
                     {s.reasoning && <div className="text-xs text-muted-foreground">AI explanation (non-consensus): {s.reasoning}</div>}
                   </div>
                 ))}
@@ -136,8 +151,8 @@ export default function Bounties({ connected }: { connected: boolean }) {
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
               <ActionBox title="Fund Bounty" icon={<Coins className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
-                <Input placeholder="amount wei" value={fundAmt} onChange={e=>setFundAmt(e.target.value)} />
-                <Button disabled={tx.status==="pending"} onClick={()=>run("Fund bounty", ()=>writeContract("fund_bounty",[bountyId], wei(fundAmt)))}>Fund</Button>
+                <Input placeholder="Amount (GEN)" value={fundAmt} onChange={e=>setFundAmt(e.target.value)} />
+                <Button disabled={tx.status==="pending"} onClick={()=>run("Fund bounty", ()=>writeContract("fund_bounty",[bountyId], parseGenToWei(fundAmt)))}>Fund</Button>
               </ActionBox>
               <ActionBox title="Submit PR" icon={<Send className="h-4 w-4"/>}>
                 <Input placeholder="bounty_id" value={bountyId} onChange={e=>setBountyId(e.target.value)} />
@@ -168,7 +183,7 @@ export default function Bounties({ connected }: { connected: boolean }) {
           </CardContent>
         </Card>
       </div>
-      <p className="text-xs text-muted-foreground mt-6">Note: amounts are in wei (1 GEN = 10^18 wei). Consensus operations (evaluate/release) may take ~30-90s. PRs must belong to the bounty repo and be real/accessible; release requires the PR to be merged. Deadline is informational (not auto-enforced by on-chain time); creators can close and withdraw remaining pool.</p>
+      <p className="text-xs text-muted-foreground mt-6">Note: amounts are in GEN (converted to wei on-chain). Consensus operations (evaluate/release) may take ~30-90s. PRs must belong to the bounty repo and be real/accessible; release requires the PR to be merged. Deadline is informational (not auto-enforced by on-chain time); creators can close and withdraw remaining pool.</p>
     </div>
   );
 }

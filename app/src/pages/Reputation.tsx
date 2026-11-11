@@ -5,6 +5,17 @@ import { Input } from "@/components/ui/input";
 import { readContract, getAddress } from "@/services/genlayer";
 import { Award, Search } from "lucide-react";
 
+function fmtGen(v: any): string {
+  try {
+    const n = BigInt(v ?? 0);
+    const neg = n < 0n;
+    const x = neg ? -n : n;
+    const i = x / 10n ** 18n;
+    const f = (x % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+    return `${neg ? "-" : ""}${i.toString()}${f ? "." + f : ""} GEN`;
+  } catch { return String(v); }
+}
+
 export default function Reputation({ connected }: { connected: boolean }) {
   const [addr, setAddr] = useState(getAddress() || "");
   const [rep, setRep] = useState<number|null>(null);
@@ -43,7 +54,7 @@ export default function Reputation({ connected }: { connected: boolean }) {
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="rounded-lg border p-4 text-center"><div className="text-3xl font-bold text-primary">{rep}</div><div className="text-sm text-muted-foreground mt-1">Reputation Points</div></div>
               <div className="rounded-lg border p-4 text-center"><div className="text-3xl font-bold">{stats ? String(stats.merges) : "-"}</div><div className="text-sm text-muted-foreground mt-1">Merges</div></div>
-              <div className="rounded-lg border p-4 text-center"><div className="text-2xl font-bold">{stats ? String(stats.total_earned) : "-"}</div><div className="text-sm text-muted-foreground mt-1">Total Earned (wei)</div></div>
+              <div className="rounded-lg border p-4 text-center"><div className="text-2xl font-bold">{stats ? fmtGen(stats.total_earned) : "-"}</div><div className="text-sm text-muted-foreground mt-1">Total Earned</div></div>
             </div>
           )}
           <p className="text-xs text-muted-foreground">Reputation is weighted by severity (Critical 10, High 5, Medium 3, Low 1) and updated on successful bounty release.</p>
