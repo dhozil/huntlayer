@@ -224,7 +224,7 @@ export default function ExploreBounties({ connected }: { connected: boolean }) {
           <Card className="glass">
             <CardHeader><CardTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-primary"/>Submit Fix PR (Researcher)</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground">Found/fixed a bug for this bounty? Submit your merged or open PR URL (must belong to the bounty repo).</p>
+              <p className="text-xs text-muted-foreground">Found/fixed a bug for this bounty? Submit your PR URL (must belong to the bounty repo). <b>Important:</b> include your claiming wallet address in the PR title/body or a commit message to prove you control the submission.</p>
               <Input placeholder="bounty_id" value={selectedId} onChange={e=>setSelectedId(e.target.value)} />
               <Input placeholder="https://github.com/owner/repo/pull/123" value={prUrl} onChange={e=>setPrUrl(e.target.value)} />
               <Button className="w-full" disabled={tx.status==="pending" || !selectedId} onClick={()=>run("Submit PR", ()=>writeContract("submit_pr",[selectedId, prUrl]))}>Submit PR</Button>

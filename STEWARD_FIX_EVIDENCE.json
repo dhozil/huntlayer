@@ -1,0 +1,66 @@
+[
+  {
+    "label": "create_bounty_reserve",
+    "tx": "0xfdd711787483548dcb1b5beb8819302c5f20770eab1de42d940fe54dd658c870",
+    "status": "ACCEPTED",
+    "exec_error": false,
+    "payload": {
+      "readable": "\"bounty_0\""
+    },
+    "note": "bounty created (pool 1 GEN, max reward 1 GEN)"
+  },
+  {
+    "label": "submit_pr_pending",
+    "tx": "0x2bbcb2d15f2e21cc73b9a4e9b2d7ce1680c36ae3ec9cfaa577e0d0bc27136fcb",
+    "status": "ACCEPTED",
+    "exec_error": false,
+    "payload": {
+      "readable": "\"sub_0\""
+    },
+    "note": "pending submission reserves max reward"
+  },
+  {
+    "label": "close_bounty_pending",
+    "tx": "0x6c3fb9f9cd491f6d304981cc9f3b1c365b9091597ba427814fa2ce5ecc5bef7d",
+    "status": "ACCEPTED",
+    "exec_error": false,
+    "payload": {
+      "readable": "null"
+    }
+  },
+  {
+    "label": "withdraw_blocked_by_pending",
+    "tx": "0x63e68e9dfa079e12585ddbab33bd0003d151f17dbfd26a2185f5585a872abb7a",
+    "status": "ACCEPTED",
+    "exec_error": true,
+    "payload": "[EXPECTED] no withdrawable funds (rewards reserved for pending/evaluated submissions)",
+    "note": "creator cannot withdraw reserved reward while submission pending"
+  },
+  {
+    "label": "create_bounty_claim",
+    "tx": "0x8953a5d6dbeca192948722178c06603960e29abb694b56679918df34ee8ba2b1",
+    "status": "ACCEPTED",
+    "exec_error": false,
+    "payload": {
+      "readable": "\"bounty_1\""
+    }
+  },
+  {
+    "label": "adversary_submit_pr_diff",
+    "tx": "0x89e077a6b2df8cb6201192cd884638b625aced3d7e3c2b2e0ceca9becdb590aa",
+    "status": "ACCEPTED",
+    "exec_error": false,
+    "payload": {
+      "readable": "\"sub_1\""
+    },
+    "note": "adversary submits PR (no identity proof in PR/commits)"
+  },
+  {
+    "label": "claim_theft_evaluate_rejected",
+    "tx": "0x6239bcb5c3fd571d9d08ce38334b0f51a98284e130298f47eb86e1c2bfb5ea53",
+    "status": "ACCEPTED",
+    "exec_error": true,
+    "payload": "[EXPECTED] missing proof: PR/commits must include claiming wallet address 0x99bF44395CaC814E671ADFF8b69d968Fac4e5Db3",
+    "note": "claim theft prevented: evaluation requires proof that claiming wallet controls PR/contributor identity"
+  }
+]

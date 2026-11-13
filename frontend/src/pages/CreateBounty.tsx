@@ -120,7 +120,7 @@ export default function CreateBounty({ connected }: { connected: boolean }) {
               <div><label className="text-xs text-muted-foreground">Initial fund (GEN)</label><Input value={c.fund} onChange={e=>setC({...c,fund:e.target.value})}/></div>
             </div>
             <Button className="w-full" disabled={tx.status==="pending"} onClick={()=>run("Create bounty", ()=>writeContract("create_bounty",[c.title,c.desc,c.repo,parseGenToWei(c.rc),parseGenToWei(c.rh),parseGenToWei(c.rm),parseGenToWei(c.rl),c.deadline], parseGenToWei(c.fund)))}>Create & Fund (publish publicly)</Button>
-            <p className="text-xs text-muted-foreground">Once created, your bounty appears on the public Explore page for researchers to submit PRs.</p>
+            <p className="text-xs text-muted-foreground">Once created, your bounty appears on the public Explore page. Researchers must include their claiming wallet address in the PR/commits as proof of identity.</p>
           </CardContent>
         </Card>
 

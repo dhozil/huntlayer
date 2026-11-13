@@ -2,12 +2,35 @@
 
 Documentation of **real on-chain execution on GenLayer Studionet** (not mocked), using funded Studionet wallets (kept private, not in repo).
 
-## Latest Deployment (current frontend target)
+## Latest Deployment (current frontend target, steward-corrected)
+
+- **Network:** GenLayer Studionet
+- **Contract:** `0x1f9572829502f3D545Bbe79860D026aA607d8553`
+- **Deploy tx:** `0xc720d4c75b010d26e84a55e375242690540748193c4587940046bfe858eeef4d` (**ACCEPTED**)
+- **Fixes:** (1) require proof that claiming wallet controls PR/contributor identity (wallet address must appear in PR/commits, checked during evaluate/release), (2) reserve applicable rewards so creators cannot withdraw reserved pool while submissions are pending or evaluated-unpaid, (3) evaluate against bounty stated defect and report patch/file omissions explicitly (no silent truncation).
+
+### Steward-fix on-chain evidence (real Studionet)
+
+See [`STEWARD_FIX_EVIDENCE.json`](./STEWARD_FIX_EVIDENCE.json).
+
+| Scenario | Tx | Outcome |
+|---|---|---|
+| Create bounty (reserve case) | `0xfdd711787483548dcb1b5beb8819302c5f20770eab1de42d940fe54dd658c870` | ACCEPTED |
+| Submit PR (pending) | `0x2bbcb2d15f2e21cc73b9a4e9b2d7ce1680c36ae3ec9cfaa577e0d0bc27136fcb` | ACCEPTED (max reward reserved) |
+| Close bounty | `0x6c3fb9f9cd491f6d304981cc9f3b1c365b9091597ba427814fa2ce5ecc5bef7d` | ACCEPTED |
+| Withdraw while pending (reserved) | `0x63e68e9dfa079e12585ddbab33bd0003d151f17dbfd26a2185f5585a872abb7a` | **ERROR (expected)** `[EXPECTED] no withdrawable funds (rewards reserved for pending/evaluated submissions)` |
+| Create bounty (claim-theft case) | `0x8953a5d6dbeca192948722178c06603960e29abb694b56679918df34ee8ba2b1` | ACCEPTED |
+| Adversary submits PR (no identity proof) | `0x89e077a6b2df8cb6201192cd884638b625aced3d7e3c2b2e0ceca9becdb590aa` | ACCEPTED (submission recorded) |
+| Adversary evaluates (claim theft attempt) | `0x6239bcb5c3fd571d9d08ce38334b0f51a98284e130298f47eb86e1c2bfb5ea53` | **ERROR (expected)** `[EXPECTED] missing proof: PR/commits must include claiming wallet address 0x99bF44395CaC814E671ADFF8b69d968Fac4e5Db3` |
+
+**Large defect-specific PR / no silent truncation (implementation):** `evaluate_severity` includes bounty stated defect (title/description) in the consensus prompt, includes file statuses/counts (up to 50 files), expands patch context (4k chars/file), and marks omissions explicitly (`[TRUNCATED: patch exceeded 4000 chars; material content omitted]`, `[TRUNCATED: showing 50 of N changed files; remaining files omitted]`, `[NO PATCH PROVIDED BY API FOR THIS FILE]`) instead of silent truncation. End-to-end positive evaluation on an external PR additionally requires the claiming wallet address to be present in that PR/commits (identity proof).
+
+## Previous Deployment (public listing)
 
 - **Network:** GenLayer Studionet
 - **Contract:** `0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE`
 - **Deploy tx:** `0xf84a77c9311955a5b8fdb939eac41515bf308552b83f8687c0c78cf94d194521` (**ACCEPTED**)
-- **Change:** adds `get_bounty_count()` view to support public bounty listing in the Explore UI (no changes to existing write logic).
+- **Change:** adds `get_bounty_count()` view to support public bounty listing in the Explore UI.
 - **Smoke check:** `get_bounty_count()` → `0` on fresh deployment.
 
 ## Tested Deployment (improved contract, real on-chain runs)

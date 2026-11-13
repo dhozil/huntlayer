@@ -53,13 +53,13 @@ Built for the **Future of Work** theme: outcomes are verified and settled by dec
 
 ## Deployed Contract (Studionet)
 
-- **Current contract (latest, redeployed)**: `0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE`
-- **Deploy tx**: `0xf84a77c9311955a5b8fdb939eac41515bf308552b83f8687c0c78cf94d194521` (ACCEPTED)
+- **Current contract (steward-corrected, redeployed)**: `0x1f9572829502f3D545Bbe79860D026aA607d8553`
+- **Deploy tx**: `0xc720d4c75b010d26e84a55e375242690540748193c4587940046bfe858eeef4d` (ACCEPTED)
 - **Network**: GenLayer Studionet
 - **Frontend config**: `frontend/src/lib/config.ts` points to the current contract.
-- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) for real on-chain method tests (positive/negative), merged-PR release flow, and `gltest` integration/adversarial results on the improved contract series.
+- **Evidence**: see [`TEST_EVIDENCE.md`](./TEST_EVIDENCE.md) and [`STEWARD_FIX_EVIDENCE.json`](./STEWARD_FIX_EVIDENCE.json) for steward-fix on-chain txs and prior test runs.
 
-> Previous deployments (historical): `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2` (improved, tested on Studionet; deploy `0x58da5bd...`) and `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures). The latest redeploy adds public bounty listing support (`get_bounty_count`) for the Explore UI.
+> Previous deployments (historical): `0x3965DdBb9D61475Dc98d506714a6243AE3d55AeE` (added `get_bounty_count`), `0x8Cb7c556768aB3A72cfa7c8e4b488c09f63714c2` (improved, tested on Studionet), and `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures).
 
 ---
 
@@ -173,9 +173,11 @@ Studionet redeploy and real-wallet runs (positive & negative tx hashes, merged-P
 ## Accuracy & Security Notes
 
 - **Consensus reduces, not eliminates, LLM risk:** validators independently verify evidence and compare decision fields; appeals/finality add protection, but outputs depend on prompts, sources, and validator behavior.
-- **Guards implemented:** creator-only controls, duplicate PR prevention, PR-to-bounty repo binding, merge verification before payout, pool sufficiency checks, confidence gating/tolerance for evaluations, idempotent payout guards, and creator withdrawal of remaining pool after close.
-- **Deadline note:** `deadline` is stored as metadata and not auto-enforced by on-chain time (previous caller-supplied date checks removed to avoid untrusted enforcement). Creators should close bounties and withdraw remaining funds as needed.
-- **Transfer/finality note:** payouts update on-chain accounting and emit value transfer; frontend confirms submitted transactions against finalized/successful execution where available. As with async transfer models, delivery semantics depend on the underlying chain/runtime.
+- **Guards implemented:** creator-only controls, duplicate PR prevention, PR-to-bounty repo binding, merge verification before payout, pool sufficiency checks, confidence gating/tolerance for evaluations, idempotent payout guards, reward reservation for pending/evaluated submissions, and creator withdrawal limited to unreserved pool after close.
+- **Claim identity proof:** evaluation/release require proof that the claiming wallet controls the PR/contributor identity — the researcher's wallet address must appear in the PR title/body or commit messages (verified from fetched PR/commit evidence).
+- **Evidence evaluation:** severity assessment is performed against the bounty's stated defect (title/description) and PR evidence; file/patch omissions are reported explicitly (no silent truncation markers).
+- **Deadline note:** `deadline` is stored as metadata and not auto-enforced by on-chain time. Creators should close bounties and withdraw remaining (unreserved) funds as needed.
+- **Transfer/finality note:** payouts update on-chain accounting and emit value transfer; frontend confirms submitted transactions against finalized/successful execution where available. Delivery semantics depend on the underlying chain/runtime.
 - **Not mock/demo:** frontend and evidence flows are designed around real Studionet/on-chain interactions (use funded real wallets).
 
 ---

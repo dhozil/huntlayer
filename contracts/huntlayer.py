@@ -111,6 +111,42 @@ class HuntLayer(gl.Contract):
             return bounty.reward_medium
         return bounty.reward_low
 
+    def _max_reward(self, bounty: Bounty) -> u256:
+        m = bounty.reward_low
+        for r in (bounty.reward_medium, bounty.reward_high, bounty.reward_critical):
+            if r > m:
+                m = r
+        return m
+
+    def _total_reserved(self, bounty_id: str, bounty: Bounty) -> u256:
+        reserved = u256(0)
+        if bounty_id not in self.submissions:
+            return reserved
+        for _sid, sub in self.submissions[bounty_id].items():
+            if sub.paid:
+                continue
+            if sub.evaluated:
+                # reserve the applicable (evaluated) reward
+                amt = sub.payout if sub.payout != u256(0) else self._reward_for(bounty, sub.severity)
+                reserved = reserved + amt
+            else:
+                # pending: reserve max possible reward until severity is known
+                reserved = reserved + self._max_reward(bounty)
+        return reserved
+
+    def _contains_claim_proof(self, pr: dict, commits: list, researcher: str) -> bool:
+        needle = researcher.lower()
+        texts = [
+            str(pr.get("title") or ""),
+            str(pr.get("body") or ""),
+            str((pr.get("user") or {}).get("login") or ""),
+        ]
+        for c in (commits or []):
+            msg = ((c.get("commit") or {}).get("message")) if isinstance(c, dict) else ""
+            texts.append(str(msg or ""))
+        blob = "\n".join(texts).lower()
+        return needle in blob
+
     # ---------- bounty lifecycle ----------
 
     @gl.public.write.payable
@@ -177,10 +213,11 @@ class HuntLayer(gl.Contract):
             raise gl.vm.UserError(f"{ERROR_EXPECTED} only creator can withdraw")
         if bounty.status != "closed":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} bounty must be closed before withdrawal")
-        if bounty.pool == u256(0):
-            raise gl.vm.UserError(f"{ERROR_EXPECTED} no funds to withdraw")
-        amount = bounty.pool
-        bounty.pool = u256(0)
+        reserved = self._total_reserved(bounty_id, bounty)
+        if bounty.pool <= reserved:
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} no withdrawable funds (rewards reserved for pending/evaluated submissions)")
+        amount = bounty.pool - reserved
+        bounty.pool = bounty.pool - amount
         self.bounties[bounty_id] = bounty
         _Recipient(Address(bounty.creator)).emit_transfer(value=amount)
 
@@ -255,6 +292,9 @@ class HuntLayer(gl.Contract):
         owner, repo, number = self._parse_pr(submission.pr_url)
         api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
         files_url = f"{api_url}/files"
+        commits_url = f"{api_url}/commits"
+        researcher = submission.researcher
+        stated_defect = f"{bounty.title}\n{bounty.description}"
 
         def leader_fn():
             res = gl.nondet.web.get(api_url)
@@ -275,25 +315,57 @@ class HuntLayer(gl.Contract):
             fbody = fres.body
             if isinstance(fbody, (bytes, bytearray)):
                 fbody = fbody.decode("utf-8")
-            files = json.loads(fbody)
+            files = json.loads(fbody) or []
 
+            cres = gl.nondet.web.get(commits_url)
+            if cres.status >= 500:
+                raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
+            if cres.status >= 400:
+                raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
+            cbody = cres.body
+            if isinstance(cbody, (bytes, bytearray)):
+                cbody = cbody.decode("utf-8")
+            commits = json.loads(cbody) or []
+
+            # Proof: claiming wallet must control the PR/contributor identity
+            if not self._contains_claim_proof(pr, commits, researcher):
+                raise gl.vm.UserError(f"{ERROR_EXPECTED} missing proof: PR/commits must include claiming wallet address {researcher}")
+
+            # Evidence: include bounty stated defect and avoid silently truncating material changes
+            total_files = len(files)
             file_chunks = []
-            for f in (files or [])[:15]:
-                patch = f.get("patch", "") or ""
-                if len(patch) > 1200:
-                    patch = patch[:1200] + "\n...[truncated]"
+            omitted_patch_files = 0
+            for f in files[:50]:
+                patch = f.get("patch") or ""
+                patch_len = len(patch)
+                if patch_len > 4000:
+                    patch = patch[:4000] + "\n[TRUNCATED: patch exceeded 4000 chars; material content omitted]"
+                    omitted_patch_files += 1
+                elif patch == "":
+                    patch = "[NO PATCH PROVIDED BY API FOR THIS FILE]"
                 file_chunks.append(
-                    f"FILE: {f.get('filename')} (+{f.get('additions', 0)}/-{f.get('deletions', 0)})\n{patch}"
+                    f"FILE: {f.get('filename')} (+{f.get('additions', 0)}/-{f.get('deletions', 0)}, status={f.get('status')})\n{patch}"
                 )
-            diff_text = "\n\n".join(file_chunks)
+            if total_files > 50:
+                file_chunks.append(f"[TRUNCATED: showing 50 of {total_files} changed files; remaining files omitted]")
+                omitted_patch_files += (total_files - 50)
+            diff_text = "\n\n".join(file_chunks) if file_chunks else "[NO FILE CHANGES RETURNED]"
 
-            prompt = f"""You are a security reviewer triaging a bug-fix pull request.
-Determine the severity of the bug being fixed based on the PR content.
+            prompt = f"""You are a security reviewer triaging a bug-fix pull request against a specific bounty defect.
+
+Bounty stated defect (evaluate evidence against this):
+Title: {bounty.title}
+Description: {bounty.description}
 
 PR title: {pr.get('title', '')}
 PR body: {pr.get('body', '')}
-Changed files summary:
+PR author login: {(pr.get('user') or {}).get('login', '')}
+Claiming wallet (must be evidenced in PR/commits): {researcher}
+
+Changed files (total {total_files}, patch omissions noted): 
 {diff_text}
+
+Determine the severity of the bug being fixed by this PR in the context of the stated defect. If the PR is unrelated to the stated defect or evidence is materially incomplete due to omissions, reflect that in lower confidence and reasoning.
 
 Severity tiers:
 - critical: security vulnerability, data loss, auth bypass, production outage
@@ -302,7 +374,7 @@ Severity tiers:
 - low: minor bug, cosmetic, docs, small improvement
 
 Return JSON only:
-{{"severity": "critical|high|medium|low", "confidence": 0-100, "reasoning": "concise explanation"}}"""
+{{"severity": "critical|high|medium|low", "confidence": 0-100, "reasoning": "concise explanation referencing stated defect and evidence"}}"""
             raw = gl.nondet.exec_prompt(prompt, response_format="json")
             if isinstance(raw, str):
                 raw = json.loads(raw)
@@ -364,6 +436,8 @@ Return JSON only:
 
         owner, repo, number = self._parse_pr(submission.pr_url)
         api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
+        commits_url = f"{api_url}/commits"
+        researcher = submission.researcher
 
         def leader_fn():
             res = gl.nondet.web.get(api_url)
@@ -375,6 +449,19 @@ Return JSON only:
             if isinstance(body, (bytes, bytearray)):
                 body = body.decode("utf-8")
             pr = json.loads(body)
+
+            cres = gl.nondet.web.get(commits_url)
+            if cres.status >= 500:
+                raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
+            if cres.status >= 400:
+                raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
+            cbody = cres.body
+            if isinstance(cbody, (bytes, bytearray)):
+                cbody = cbody.decode("utf-8")
+            commits = json.loads(cbody) or []
+
+            if not self._contains_claim_proof(pr, commits, researcher):
+                raise gl.vm.UserError(f"{ERROR_EXPECTED} missing proof: PR/commits must include claiming wallet address {researcher}")
             return {"merged": bool(pr.get("merged", False))}
 
         def validator_fn(leaders_res) -> bool:
