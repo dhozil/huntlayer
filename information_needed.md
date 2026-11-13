@@ -134,3 +134,25 @@ Severity evaluation could ignore the bounty’s stated defect and/or silently tr
 - **Frontend:** Vercel should redeploy the latest `frontend` build to serve the corrected contract config and updated UX copy.
 
 **Conclusion:** The steward’s requested protections—(1) proof of claiming-wallet control over PR/contributor identity, (2) reward reservation blocking creator withdrawal while pending/evaluated, and (3) evaluation against the bounty’s stated defect with explicit (non-silent) handling of material omissions—are implemented in the corrected deployed contract, covered by targeted tests, and supported by on-chain Studionet evidence for the critical rejection/reservation paths. No remaining gaps identified against the stated request.
+
+---
+
+## 7. Follow-up correction (steward rejection addressed): large-PR pagination & test coverage
+
+**Issue cited:** previous correction fetched PR files via a single unpaginated response, so later files could be omitted without an omission marker; and there was no large defect-specific PR test covering that path.
+
+**Implemented fixes (latest):**
+- **Paginated file fetching in valuate_severity** (contracts/huntlayer.py): fetches PR files page-by-page (/pulls/{n}/files?per_page=100&page=n, up to 10 pages safety cap) and accumulates all fetched pages instead of relying on one unpaginated response.
+- **Explicit omission markers (no silent omission):** prompt includes fetched/shown counts; files beyond shown limit are marked [TRUNCATED: showing {shown_limit} of {total_files} fetched changed files; {hidden} fetched files omitted from prompt]; if not all pages can be retrieved (e.g. safety cap reached) adds [TRUNCATED: additional changed files may exist beyond fetched pages; not all PR files could be retrieved (...)]. Patch-level omissions remain explicitly marked ([TRUNCATED: patch exceeded 4000 chars; material content omitted], [NO PATCH PROVIDED BY API FOR THIS FILE]).
+- **Commit pagination** added in valuate_severity and elease_bounty to ensure identity proof is not missed on later commit pages.
+- **Large defect-specific PR tests covering this path:** 	est/direct/test_large_pr.py (direct mode with mocked paginated GitHub responses + LLM, identity proof included, bounty stated defect provided):
+  - 	est_large_defect_specific_pr_paginates_files_and_evaluates: 120 changed files across 2 pages; evaluates successfully against stated defect (severity high, confidence 90, reasoning references stated defect).
+  - 	est_large_pr_beyond_fetch_cap_marks_omission_and_evaluates: >fetch-cap pages; evaluation proceeds with explicit omission marker (no silent omission), defect-specific result.
+- **Validation:** python -m pytest test/direct/test_large_pr.py -v → **2 passed**. genvm-lint check contracts/huntlayer.py --json → OK.
+
+**Latest corrected deployment (includes pagination fix):**
+- **Contract:**  x0A947e67e958fcD18d2F7E9529dbF6af75296ef4
+- **Deploy tx:**  x5d247fb6360bb798038f6afa7e00c2bc6489cc6a53a8b835e7c71f50aabb4382 (**ACCEPTED**, Studionet)
+- **Frontend config:** rontend/src/lib/config.ts updated to this address.
+
+This addresses the cited incompleteness: later PR files are no longer dependent on a single unpaginated response, unfetched/omitted content is explicitly marked, and a large defect-specific PR test now covers the paginated path.

@@ -307,25 +307,51 @@ class HuntLayer(gl.Contract):
                 body = body.decode("utf-8")
             pr = json.loads(body)
 
-            fres = gl.nondet.web.get(files_url)
-            if fres.status >= 500:
-                raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub files API unavailable: {fres.status}")
-            if fres.status >= 400:
-                raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub files API error: {fres.status}")
-            fbody = fres.body
-            if isinstance(fbody, (bytes, bytearray)):
-                fbody = fbody.decode("utf-8")
-            files = json.loads(fbody) or []
+            # Paginate PR files to avoid omitting later files without marker
+            files = []
+            files_pages_fetched = 0
+            files_fully_fetched = True
+            files_fetch_error = ""
+            for page in range(1, 11):  # up to 10 pages (1000 files) safety cap
+                page_url = f"{files_url}?per_page=100&page={page}"
+                fres = gl.nondet.web.get(page_url)
+                if fres.status >= 500:
+                    raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub files API unavailable: {fres.status}")
+                if fres.status >= 400:
+                    raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub files API error: {fres.status}")
+                fbody = fres.body
+                if isinstance(fbody, (bytes, bytearray)):
+                    fbody = fbody.decode("utf-8")
+                page_files = json.loads(fbody) or []
+                files_pages_fetched += 1
+                files.extend(page_files)
+                if len(page_files) < 100:
+                    files_fully_fetched = True
+                    break
+                if page == 10:
+                    files_fully_fetched = False
+                    files_fetch_error = "pagination safety cap reached (10 pages)"
+            else:
+                files_fully_fetched = False
+                if not files_fetch_error:
+                    files_fetch_error = "pagination ended without completion marker"
 
-            cres = gl.nondet.web.get(commits_url)
-            if cres.status >= 500:
-                raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
-            if cres.status >= 400:
-                raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
-            cbody = cres.body
-            if isinstance(cbody, (bytes, bytearray)):
-                cbody = cbody.decode("utf-8")
-            commits = json.loads(cbody) or []
+            # Paginate commits to ensure identity proof is not missed on later pages
+            commits = []
+            for page in range(1, 11):
+                page_url = f"{commits_url}?per_page=100&page={page}"
+                cres = gl.nondet.web.get(page_url)
+                if cres.status >= 500:
+                    raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
+                if cres.status >= 400:
+                    raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
+                cbody = cres.body
+                if isinstance(cbody, (bytes, bytearray)):
+                    cbody = cbody.decode("utf-8")
+                page_commits = json.loads(cbody) or []
+                commits.extend(page_commits)
+                if len(page_commits) < 100:
+                    break
 
             # Proof: claiming wallet must control the PR/contributor identity
             if not self._contains_claim_proof(pr, commits, researcher):
@@ -334,21 +360,26 @@ class HuntLayer(gl.Contract):
             # Evidence: include bounty stated defect and avoid silently truncating material changes
             total_files = len(files)
             file_chunks = []
-            omitted_patch_files = 0
-            for f in files[:50]:
+            patch_omitted_files = 0
+            shown_limit = 50
+            for f in files[:shown_limit]:
                 patch = f.get("patch") or ""
                 patch_len = len(patch)
                 if patch_len > 4000:
                     patch = patch[:4000] + "\n[TRUNCATED: patch exceeded 4000 chars; material content omitted]"
-                    omitted_patch_files += 1
+                    patch_omitted_files += 1
                 elif patch == "":
                     patch = "[NO PATCH PROVIDED BY API FOR THIS FILE]"
                 file_chunks.append(
                     f"FILE: {f.get('filename')} (+{f.get('additions', 0)}/-{f.get('deletions', 0)}, status={f.get('status')})\n{patch}"
                 )
-            if total_files > 50:
-                file_chunks.append(f"[TRUNCATED: showing 50 of {total_files} changed files; remaining files omitted]")
-                omitted_patch_files += (total_files - 50)
+            if total_files > shown_limit:
+                hidden = total_files - shown_limit
+                file_chunks.append(f"[TRUNCATED: showing {shown_limit} of {total_files} fetched changed files; {hidden} fetched files omitted from prompt]")
+                patch_omitted_files += hidden
+            if not files_fully_fetched:
+                suffix = f" ({files_fetch_error})" if files_fetch_error else ""
+                file_chunks.append(f"[TRUNCATED: additional changed files may exist beyond fetched pages; not all PR files could be retrieved{suffix}]")
             diff_text = "\n\n".join(file_chunks) if file_chunks else "[NO FILE CHANGES RETURNED]"
 
             prompt = f"""You are a security reviewer triaging a bug-fix pull request against a specific bounty defect.
@@ -450,15 +481,22 @@ Return JSON only:
                 body = body.decode("utf-8")
             pr = json.loads(body)
 
-            cres = gl.nondet.web.get(commits_url)
-            if cres.status >= 500:
-                raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
-            if cres.status >= 400:
-                raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
-            cbody = cres.body
-            if isinstance(cbody, (bytes, bytearray)):
-                cbody = cbody.decode("utf-8")
-            commits = json.loads(cbody) or []
+            # Paginate commits to ensure identity proof is not missed on later pages
+            commits = []
+            for page in range(1, 11):
+                page_url = f"{commits_url}?per_page=100&page={page}"
+                cres = gl.nondet.web.get(page_url)
+                if cres.status >= 500:
+                    raise gl.vm.UserError(f"{ERROR_TRANSIENT} GitHub commits API unavailable: {cres.status}")
+                if cres.status >= 400:
+                    raise gl.vm.UserError(f"{ERROR_EXTERNAL} GitHub commits API error: {cres.status}")
+                cbody = cres.body
+                if isinstance(cbody, (bytes, bytearray)):
+                    cbody = cbody.decode("utf-8")
+                page_commits = json.loads(cbody) or []
+                commits.extend(page_commits)
+                if len(page_commits) < 100:
+                    break
 
             if not self._contains_claim_proof(pr, commits, researcher):
                 raise gl.vm.UserError(f"{ERROR_EXPECTED} missing proof: PR/commits must include claiming wallet address {researcher}")

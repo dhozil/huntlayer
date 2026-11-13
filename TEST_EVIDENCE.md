@@ -104,3 +104,13 @@ Executed against the current contract with real wallets (`scripts/test_all_metho
 - **Contract:** `0x829068c07fDe9f71f5b41b3ef5423A141Ea46beF` (old ABI/signatures)
 - **Deploy tx:** `0x3da22d38844b411022fbc5801ab98cda8c26ec1d01673b726a15f3cd2068fb3e`
 - Prior on-chain positive/negative runs and tx hashes for that deployment were recorded before the contract improvements (e.g. before `withdraw_pool`, repo binding, and removal of `current_date`/`close_if_expired`). Refer to repository history for the earlier evidence snapshot.
+
+## Follow-up correction: large-PR pagination & tests (latest)
+
+- **Corrected contract (latest):** `0x0A947e67e958fcD18d2F7E9529dbF6af75296ef4`
+- **Deploy tx:** `0x5d247fb6360bb798038f6afa7e00c2bc6489cc6a53a8b835e7c71f50aabb4382` (**ACCEPTED**, Studionet)
+- **Fix:** `evaluate_severity` now paginates GitHub PR files (`/files?per_page=100&page=n`, up to safety cap) and commits instead of using a single unpaginated files response; if later files/pages cannot be fully fetched or are omitted from prompt, explicit omission markers are added (no silent omission), while still evaluating against the bounty's stated defect.
+- **Large defect-specific PR tests (direct mode, paginated/mocked):** `test/direct/test_large_pr.py`
+  - `test_large_defect_specific_pr_paginates_files_and_evaluates` — 120-file PR across 2 pages with identity proof and stated defect; evaluation succeeds (high/90).
+  - `test_large_pr_beyond_fetch_cap_marks_omission_and_evaluates` — PR exceeding fetch-page safety cap; evaluation proceeds with explicit omission marker (no silent omission), defect-specific result.
+- **Result:** `python -m pytest test/direct/test_large_pr.py -v` → **2 passed** (0.18s). `genvm-lint check contracts/huntlayer.py --json` → OK.
